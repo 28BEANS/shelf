@@ -13,7 +13,7 @@ folder is half of what gets read.
 | [04-weekly-reports.md](04-weekly-reports.md) | one short entry per week, added as you go |
 | [05-demo-video.md](05-demo-video.md) | the recording and what it shows |
 | [06-security-and-privacy.md](06-security-and-privacy.md) | the checklist, filled in and dated |
-| `assets/` | screenshots, wireframe photos, diagrams |
+| `assets/` | mockup screens, design-system visuals, and reference PDFs |
 
 Two rules:
 
@@ -27,3 +27,7 @@ Two rules:
 - **The weekly reports are the exception. Write those as you go.** A report
   written in week twelve for all twelve weeks is obvious to read and worth much
   less to you.
+
+The visual references used by the documentation are stored in `assets/mockup/`
+and `assets/design-system/`. The demo-video document is intentionally left as a
+recording checklist until the final demonstration is available.
