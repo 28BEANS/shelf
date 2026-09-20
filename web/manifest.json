@@ -1,11 +1,11 @@
 {
-  "name": "My Final Project",
-  "short_name": "Final Project",
+  "name": "Shelf",
+  "short_name": "Shelf",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FFFFFF",
-  "theme_color": "#6750A4",
-  "description": "My 6ADET final project.",
+  "theme_color": "#CCFF00",
+  "description": "Shelf keeps shared equipment connected to its physical home.",
   "orientation": "portrait-primary",
   "prefer_related_applications": false
 }
