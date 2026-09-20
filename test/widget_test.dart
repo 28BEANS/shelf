@@ -1,27 +1,84 @@
-// A widget test: it builds your app in memory and checks what is on screen.
-// Run them all with: flutter test
-//
-// You are not required to write more of these, but a project with a few real
-// tests reads very differently from one with none.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:final_project/main.dart';
+import 'package:final_project/app.dart';
 
 void main() {
-  testWidgets('home screen shows its title and counts taps', (tester) async {
-    // Build the app. Note we build MyApp directly, not the DevicePreview
-    // wrapper, because a test does not need the phone frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() {});
 
-    expect(find.text('It works'), findsOneWidget);
-    expect(find.text('Taps: 0'), findsOneWidget);
+  testWidgets('local sign-in opens the spaces screen', (tester) async {
+    _phoneViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: ShelfApp()));
 
-    // Tap the button, then let the widget rebuild.
-    await tester.tap(find.byType(FilledButton));
+    expect(find.text('Know where\neverything belongs.'), findsOneWidget);
+    await _signIn(tester);
+
+    expect(find.text('Your Spaces'), findsOneWidget);
+    expect(find.text('No spaces yet'), findsOneWidget);
+  });
+
+  testWidgets('local sign-in requires both fields', (tester) async {
+    _phoneViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: ShelfApp()));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('enter-shelf')));
     await tester.pump();
 
-    expect(find.text('Taps: 1'), findsOneWidget);
+    expect(find.text('Required'), findsNWidgets(2));
   });
+
+  testWidgets('sample room setup reaches the mockup section screen', (
+    tester,
+  ) async {
+    _phoneViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: ShelfApp()));
+    await _signIn(tester);
+
+    await tester.tap(find.byKey(const Key('start-setup')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add inventory'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('scan-workspace')));
+    await tester.pumpAndSettle();
+    expect(find.text('Scanning workspace'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('finish-room-scan')));
+    await tester.tap(find.byKey(const Key('finish-room-scan')));
+    await tester.pumpAndSettle();
+    expect(find.text('Room captured'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('continue-detected')));
+    await tester.tap(find.byKey(const Key('continue-detected')));
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a layout'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const Key('use-layout')));
+    await tester.tap(find.byKey(const Key('use-layout')));
+    await tester.pumpAndSettle();
+    expect(find.text('Select a section'), findsOneWidget);
+    expect(find.text('Bottom Shelf'), findsAtLeastNWidgets(1));
+  });
+}
+
+void _phoneViewport(WidgetTester tester) {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+}
+
+Future<void> _signIn(WidgetTester tester) async {
+  await tester.enterText(
+    find.widgetWithText(TextFormField, 'Email'),
+    'demo@shelf.local',
+  );
+  await tester.enterText(
+    find.widgetWithText(TextFormField, 'Password'),
+    'password',
+  );
+  await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('enter-shelf')));
+  await tester.pumpAndSettle();
 }
