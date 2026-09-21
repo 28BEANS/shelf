@@ -1,119 +1,151 @@
-<!--
-  This is your project's front page. Replace every placeholder below.
-  It is the first thing your instructor and any future employer will read, and
-  the live link in it is how your project gets opened for grading.
+# Shelf
 
-  New here? Read START-HERE.md first. Delete this comment when you are done.
--->
+Shelf is a local-first inventory app for shared equipment rooms. It guides a
+user through mapping a workspace, confirming storage sections and reviewing
+possible items so equipment can be returned to a consistent physical home.
 
-# App Name
-
-> One sentence: what this app does, and who it is for.
-
-**Live demo:** https://YOURUSERNAME.github.io/YOUR-REPO/ <!-- GitHub Pages is set up already; replace if you host elsewhere -->
-**Demo video:** `docs/demo.mp4` (link it here once it exists)
-**Course:** Applications Development and Emerging Technologies (6ADET), Holy Angel University
-**Author:** Your Name
-
-This repository lives in the author's own GitHub account and is public on
-purpose. There is no `student.json` here and there should not be one: see
-`docs/06-security-and-privacy.md` for what a public repo means for secrets and
-personal data.
-
----
+> Week 1 status: the visual shell and complete sample setup flow are working.
+> Real scanning, persistent inventory records and search are still in progress.
 
 ## Screenshots
 
-Put two or three real screenshots at phone size in `docs/assets/`, then replace
-this paragraph with them:
+These screenshots were captured from the current Flutter web build at a
+390 × 844 phone viewport.
 
-```markdown
-| Home | Detail | Add |
+| Sign in | Spaces | Add inventory |
 | --- | --- | --- |
-| ![Home](docs/assets/screen-home.png) | ![Detail](docs/assets/screen-detail.png) | ![Add](docs/assets/screen-add.png) |
-```
+| ![Shelf sign-in screen](docs/assets/screenshots/01-sign-in.png) | ![Empty spaces screen](docs/assets/screenshots/02-spaces.png) | ![Add inventory screen](docs/assets/screenshots/03-add-inventory.png) |
 
-A repo without screenshots reads as abandoned, whatever the code says.
+| Search | Room scan | Detected spaces |
+| --- | --- | --- |
+| ![Search placeholder screen](docs/assets/screenshots/04-search.png) | ![Sample room scan screen](docs/assets/screenshots/05-room-scan.png) | ![Detected spaces review screen](docs/assets/screenshots/06-detected-spaces.png) |
 
-## What it does
+| Choose layout | Select section | Review items |
+| --- | --- | --- |
+| ![Cabinet layout selection screen](docs/assets/screenshots/07-choose-layout.png) | ![Section selection screen](docs/assets/screenshots/08-select-section.png) | ![Detected item review screen](docs/assets/screenshots/09-review-items.png) |
 
-Three to five bullets. What can a user actually do?
+## Features and usage
 
-- ...
-- ...
-- ...
+1. **Enter Shelf.** Fill both fields on the sign-in screen and select **Sign
+   in**. This is a local Week 1 entry form, not a remote account system.
+2. **Open the main shell.** The Home tab shows saved spaces and starts setup.
+   The Scan tab contains the inventory actions, while Search currently shows
+   its Week 2 placeholder.
+3. **Start a workspace.** Select **Scan a workspace** to open the simulated
+   room-capture screen, or use **Set up manually** to skip capture.
+4. **Review the sample detection.** Finish the scan, review the suggested
+   cabinet, then continue. Detected results are labelled as suggestions so the
+   user can correct them.
+5. **Choose the cabinet structure.** Select the closest layout and rename
+   sections if needed.
+6. **Review item candidates.** Scan the first section, review the three sample
+   candidates and confirm the inventory.
 
-## Built with
+The sample flow deliberately keeps a manual alternative available. It does not
+claim to perform camera, RoomPlan or object-recognition work yet.
 
-| | |
-| --- | --- |
-| Framework | Flutter (Dart) |
-| State | `setState` / provider / riverpod (say which) |
-| Storage | shared_preferences / Hive / Drift / Firebase / Supabase / other |
-| Other packages | list the ones that matter, with a word on why |
+## Setup and installation
 
-## Running it yourself
+The verified development environment is:
+
+- Flutter 3.44.4 (stable)
+- Dart 3.12.2
+- Chrome for interactive web development
+
+From a new terminal:
 
 ```bash
+git clone https://github.com/28BEANS/shelf.git
+cd shelf
 flutter pub get
-cp .env.example .env      # only if your app needs keys, see below
+flutter run -d chrome
+```
+
+When the app opens, the sign-in screen should show the Shelf logo, a lavender
+introductory card and a local sign-in form. Any non-empty email and password can
+be used for the current local demo.
+
+To run without Flutter launching Chrome automatically:
+
+```bash
 flutter run -d web-server --web-port 8080
 ```
 
-Then open http://localhost:8080. Requires Flutter (run `flutter --version` and
-put yours here).
+Then open `http://localhost:8080`. No API keys, backend URL or `.env` file are
+required for the Week 1 build.
 
-### Environment variables
+## Verification
 
-This project reads its configuration from a `.env` file that is **not** in the
-repository. Copy `.env.example`, fill in your own values, and never commit the
-result.
+```bash
+flutter analyze
+flutter test
+flutter build web --release
+```
 
-| Variable | What it is | Where to get one |
-| --- | --- | --- |
-| `EXAMPLE_API_KEY` | ... | ... |
+Static analysis and all four automated tests pass. The tests cover required
+sign-in fields, navigation into the app, the narrow-phone setup flow and a
+file-backed Drift save/reopen/read/update cycle.
+
+## Built with
+
+| Area | Choice |
+| --- | --- |
+| UI | Flutter and Material widgets |
+| State | Riverpod |
+| Local storage | Drift with SQLite/Wasm support; the storage spike works, but setup state is not connected yet |
+| Visual preview | Device Preview in debug builds |
+| Typography | Bundled `Plus Jakarta Sans` and `Space Mono` font files, licensed under the SIL Open Font License |
+
+## Project structure
+
+```text
+lib/
+├── main.dart                 # application entry point
+├── app.dart                  # MaterialApp and debug Device Preview
+├── theme.dart                # colors, type and shared theme rules
+├── data/                     # Drift database and generated schema code
+├── models/                   # workspace, container, section and item models
+├── screens/                  # sign-in, tab shell and setup flow
+├── services/                 # replaceable scan-service boundary
+├── state/                    # Riverpod providers and setup state
+└── widgets/                  # reusable Shelf interface components
+```
+
+The project documents are in [`docs/`](docs/README.md), including the
+[proposal](docs/01-proposal.md), [mockup](docs/02-mockup.md),
+[design system](docs/03-design-system.md),
+[weekly reports](docs/04-weekly-reports.md), and
+[security and privacy checklist](docs/06-security-and-privacy.md).
 
 ## Privacy and secrets
 
-Required section. Two or three honest sentences:
+The current build uses sample data and keeps its local database on the device;
+nothing is sent to a backend. It needs no secrets, and the repository contains
+no real API keys. The screenshots and sample flow use fictional room, account
+and inventory data only.
 
-- What personal data this app stores, if any, and where it goes.
-- Where the secrets live (`.env` locally, repository secrets in the deploy
-  workflow) and what protects the data on the service side (Firestore rules,
-  Supabase RLS, or "nothing leaves the device").
-- Confirm that all sample data, screenshots and the video contain **no real
-  personal information**.
+## Known issues and next steps
 
-## Project documentation
+- Setup progress currently lives in Riverpod memory and resets when the app is
+  restarted. The tested Drift database is not connected to the setup flow yet.
+- Room capture and item recognition return labelled sample candidates. Camera,
+  permissions, iOS RoomPlan and LiDAR have not been validated on a compatible
+  physical device.
+- Search is a visible placeholder and there are no container overview, item
+  detail, checkout, return or move-item flows yet.
+- The sign-in form is only a local entry gate; it does not authenticate users.
+- A deployed live URL and demo video are not available yet.
 
-| Document | |
-| --- | --- |
-| [Proposal](docs/01-proposal.md) | the problem, the users, the scope |
-| [Mockup and wireframes](docs/02-mockup.md) | what it looks like, and the screen flow |
-| [Design system](docs/03-design-system.md) | colors, type, spacing, components |
-| [Weekly reports](docs/04-weekly-reports.md) | what happened each week |
-| [Demo video](docs/05-demo-video.md) | the recording and what it shows |
-| [Start here](START-HERE.md) | how this repo works (delete once you have read it) |
-| [Security and privacy](docs/06-security-and-privacy.md) | the checklist, filled in |
-
-## Status and what is next
-
-Be honest. What works, what is half done, what you would build next. An honest
-"known issues" section reads better than a claim the reader disproves in thirty
-seconds.
-
-## Credits
-
-- Packages: see `pubspec.yaml`
-- Assets, icons, 3D models, sounds: name the author and the licence for each
-- People who helped, and how
+Next, the data model will be expanded into persistent workspace, container,
+section and item records. The manual inventory path, overview screens, search
+and item-location detail will be built before native scanning is attempted.
 
 ## AI use
 
-If you used AI tools while building this, say so in a sentence or two and say
-where. Honest disclosure is the standard in this course and increasingly outside
-it.
+AI-assisted tools were used for planning, implementation support, testing and
+documentation. The disclosure and verification record is in
+[`AI-USAGE.md`](AI-USAGE.md).
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE). Change it if you want different terms.
+MIT. See [`LICENSE`](LICENSE).
