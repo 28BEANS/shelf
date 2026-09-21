@@ -16,7 +16,6 @@ dependencies:
   drift: ^2.35.0
   drift_flutter: ^0.3.1
   flutter_riverpod: ^3.0.0
-  google_fonts: ^6.3.2
   path_provider: ^2.1.6
   # Lets you preview the app inside a phone frame while you develop in a
   # browser. It is switched off automatically in a release build.
@@ -31,6 +30,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Put images, fonts and sounds in assets/ and list them here, for example:
-  # assets:
-  #   - assets/images/
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+          weight: 400

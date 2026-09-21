@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppSpacing {
   static const xs = 4.0;
@@ -46,40 +45,48 @@ final shelfTheme = ThemeData(
   useMaterial3: true,
   colorScheme: shelfScheme,
   scaffoldBackgroundColor: const Color(0xFFF5F0EF),
+  fontFamily: 'PlusJakartaSans',
   textTheme: TextTheme(
-    displayLarge: GoogleFonts.plusJakartaSans(
+    displayLarge: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 34,
       height: 40 / 34,
       fontWeight: FontWeight.w800,
       color: shelfScheme.onSurface,
     ),
-    headlineSmall: GoogleFonts.plusJakartaSans(
+    headlineSmall: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 23,
       height: 29 / 23,
       fontWeight: FontWeight.w800,
       color: shelfScheme.onSurface,
     ),
-    titleLarge: GoogleFonts.plusJakartaSans(
+    titleLarge: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 20,
       fontWeight: FontWeight.w800,
       color: shelfScheme.onSurface,
     ),
-    titleMedium: GoogleFonts.plusJakartaSans(
+    titleMedium: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 16,
       fontWeight: FontWeight.w700,
       color: shelfScheme.onSurface,
     ),
-    bodyMedium: GoogleFonts.plusJakartaSans(
+    bodyMedium: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 14,
       height: 20 / 14,
       color: shelfScheme.onSurface,
     ),
-    labelSmall: GoogleFonts.spaceMono(
+    labelSmall: const TextStyle(
+      fontFamily: 'SpaceMono',
       fontSize: 10,
-      fontWeight: FontWeight.w500,
-      color: const Color(0xFF373737),
+      fontWeight: FontWeight.w400,
+      color: Color(0xFF373737),
     ),
-    labelLarge: GoogleFonts.plusJakartaSans(
+    labelLarge: TextStyle(
+      fontFamily: 'PlusJakartaSans',
       fontSize: 12,
       fontWeight: FontWeight.w700,
       color: shelfScheme.onSurface,
@@ -115,7 +122,10 @@ final shelfTheme = ThemeData(
         borderRadius: BorderRadius.circular(999),
         side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
       ),
-      textStyle: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+      textStyle: const TextStyle(
+        fontFamily: 'PlusJakartaSans',
+        fontWeight: FontWeight.w800,
+      ),
     ),
   ),
   appBarTheme: AppBarTheme(
