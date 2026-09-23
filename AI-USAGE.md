@@ -9,8 +9,6 @@ looks exactly like what it is.
 
 ## 1. How I used AI
 
-# 1. How I used AI
-
 ### 2026-09-20 - Configuring Flutter platforms and dependencies
 
 - **Tool:** ChatGPT Codex
