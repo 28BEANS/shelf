@@ -9,6 +9,7 @@ import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_bottom_navigation.dart';
 import '../widgets/shelf_brand.dart';
 import '../widgets/shelf_illustration.dart';
+import 'inventory_screens.dart';
 import 'setup_flow_screen.dart';
 
 class ShelfShell extends ConsumerStatefulWidget {
@@ -24,36 +25,111 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
   Future<void> _openSetup({bool manual = false}) async {
     final setup = ref.read(setupProvider);
     if (setup.workspace == null) {
-      ref
+      final name = TextEditingController();
+      final description = TextEditingController();
+      final form = GlobalKey<FormState>();
+      final create = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Create workspace'),
+          content: Form(
+            key: form,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Workspace name',
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter a workspace name'
+                      : null,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: description,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (optional)',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('CANCEL'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (form.currentState!.validate()) Navigator.pop(context, true);
+              },
+              child: const Text('CREATE'),
+            ),
+          ],
+        ),
+      );
+      if (create != true) {
+        return;
+      }
+      await ref
           .read(setupProvider.notifier)
-          .saveWorkspace('Campus Media Room', 'Shared equipment room');
+          .saveWorkspace(name.text, description.text);
     }
     if (manual) {
-      ref
+      await ref
           .read(setupProvider.notifier)
           .saveContainer(
             ShelfContainer(
-              id: 'manual-${DateTime.now().millisecondsSinceEpoch}',
+              id: 'manual-${DateTime.now().microsecondsSinceEpoch}',
               name: 'New Cabinet',
               type: 'Cabinet',
             ),
           );
     }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => SetupFlowScreen(manual: manual)));
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SetupFlowScreen(manual: manual, newSpace: !manual),
+      ),
+    );
     if (mounted) setState(() => _index = 0);
   }
 
   @override
   Widget build(BuildContext context) {
+    final setup = ref.watch(setupProvider);
+    if (setup.loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (setup.error != null) {
+      return Scaffold(
+        body: Center(
+          child: Text('Could not open local inventory: ${setup.error}'),
+        ),
+      );
+    }
     final pages = [
       _HomePage(onScan: () => setState(() => _index = 1)),
       _ScanPage(
         onScan: () => _openSetup(),
         onManual: () => _openSetup(manual: true),
+        onExisting: () {
+          final container = ref.read(setupProvider).container;
+          if (container != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ContainerOverviewScreen(containerId: container.id),
+              ),
+            );
+          }
+        },
       ),
-      const _SearchPage(),
+      const InventorySearchPage(),
     ];
     return Scaffold(
       body: ShelfMobileRail(
@@ -90,7 +166,7 @@ class _HomePage extends ConsumerWidget {
           subtitle: 'Open a space or continue setup.',
         ),
         const SizedBox(height: AppSpacing.md),
-        if (state.isComplete)
+        if (state.workspace != null && state.containers.isNotEmpty)
           HardShadowCard(
             color: Theme.of(context).colorScheme.primary,
             child: Column(
@@ -107,30 +183,48 @@ class _HomePage extends ConsumerWidget {
                     const _PillLabel(label: 'READY', color: Color(0xFFB5EAD7)),
                   ],
                 ),
-                const Text('Ready to use'),
+                Text(state.isComplete ? 'Ready to use' : 'Continue setup'),
                 const SizedBox(height: AppSpacing.md),
                 const ShelfIllustration(height: 148),
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
                     Expanded(
-                      child: _Metric(value: '1', label: 'container'),
+                      child: _Metric(
+                        value: '${state.containers.length}',
+                        label: 'containers',
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: _Metric(
-                        value: '${state.sections.length}',
+                        value: '${state.allSections.length}',
                         label: 'sections',
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
-                    const Expanded(
-                      child: _Metric(value: '0', label: 'items'),
+                    Expanded(
+                      child: _Metric(
+                        value: '${state.items.length}',
+                        label: 'items',
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.md),
-                PrimaryActionButton(label: 'Open space', onPressed: () {}),
+                PrimaryActionButton(
+                  label: 'Open space',
+                  onPressed: state.container == null
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ContainerOverviewScreen(
+                              containerId: state.container!.id,
+                            ),
+                          ),
+                        ),
+                ),
               ],
             ),
           )
@@ -151,6 +245,33 @@ class _HomePage extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: AppSpacing.md),
+        for (final container in state.containers) ...[
+          InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    ContainerOverviewScreen(containerId: container.id),
+              ),
+            ),
+            child: HardShadowCard(
+              child: Row(
+                children: [
+                  const Icon(Icons.inventory_2_outlined),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      container.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         PrimaryActionButton(
           key: const Key('start-setup'),
           label: 'Scan new space',
@@ -162,9 +283,14 @@ class _HomePage extends ConsumerWidget {
 }
 
 class _ScanPage extends StatelessWidget {
-  const _ScanPage({required this.onScan, required this.onManual});
+  const _ScanPage({
+    required this.onScan,
+    required this.onManual,
+    required this.onExisting,
+  });
   final VoidCallback onScan;
   final VoidCallback onManual;
+  final VoidCallback onExisting;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -216,22 +342,25 @@ class _ScanPage extends StatelessWidget {
         ),
       ),
       const SizedBox(height: AppSpacing.listItem),
-      const HardShadowCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Add items to an existing section',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            SizedBox(height: AppSpacing.xs),
-            Text('Choose a space, container, and section before scanning.'),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'CHOOSE LOCATION →',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-            ),
-          ],
+      InkWell(
+        onTap: onExisting,
+        child: const HardShadowCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Add items to an existing section',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              SizedBox(height: AppSpacing.xs),
+              Text('Choose a space, container, and section before scanning.'),
+              SizedBox(height: AppSpacing.sm),
+              Text(
+                'CHOOSE LOCATION →',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
         ),
       ),
       const SizedBox(height: AppSpacing.listItem),
@@ -250,48 +379,6 @@ class _ScanPage extends StatelessWidget {
             Text(
               'START RETURN MODE →',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-class _SearchPage extends StatelessWidget {
-  const _SearchPage();
-
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpacing.lg,
-      AppSpacing.lg,
-      AppSpacing.lg,
-      104,
-    ),
-    children: [
-      const ShelfPageHeader(
-        eyebrow: 'Inventory',
-        title: 'Search',
-        subtitle: 'Find an item and its physical home.',
-      ),
-      const SizedBox(height: AppSpacing.section),
-      TextField(
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search),
-          hintText: 'Search items, categories, or locations',
-        ),
-      ),
-      const SizedBox(height: AppSpacing.section),
-      HardShadowCard(
-        color: Theme.of(context).colorScheme.secondary,
-        child: const Column(
-          children: [
-            Icon(Icons.search, size: 48),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'Inventory search arrives in week 2.',
-              textAlign: TextAlign.center,
             ),
           ],
         ),

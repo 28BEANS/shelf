@@ -123,11 +123,11 @@ class MovementRecords extends Table {
   ],
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor])
+  AppDatabase([QueryExecutor? executor, String name = 'shelf'])
     : super(
         executor ??
             driftDatabase(
-              name: 'shelf',
+              name: name,
               web: DriftWebOptions(
                 sqlite3Wasm: Uri.parse('sqlite3.wasm'),
                 driftWorker: Uri.parse('drift_worker.js'),

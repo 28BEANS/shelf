@@ -11,8 +11,15 @@ import '../widgets/shelf_brand.dart';
 enum _SetupStep { roomScan, detected, layout, sections }
 
 class SetupFlowScreen extends ConsumerStatefulWidget {
-  const SetupFlowScreen({super.key, this.manual = false});
+  const SetupFlowScreen({
+    super.key,
+    this.manual = false,
+    this.editLayout = false,
+    this.newSpace = false,
+  });
   final bool manual;
+  final bool editLayout;
+  final bool newSpace;
 
   @override
   ConsumerState<SetupFlowScreen> createState() => _SetupFlowScreenState();
@@ -35,10 +42,18 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
   void initState() {
     super.initState();
     final setup = ref.read(setupProvider);
-    if (setup.isComplete) {
-      _step = _SetupStep.sections;
+    final currentLayout = _layouts.indexWhere(
+      (option) => option.$1 == setup.layoutLabel,
+    );
+    if (currentLayout >= 0) _selectedLayout = currentLayout;
+    if (widget.newSpace) {
+      _step = _SetupStep.roomScan;
+    } else if (widget.editLayout) {
+      _step = _SetupStep.layout;
     } else if (widget.manual) {
       _step = _SetupStep.detected;
+    } else if (setup.isComplete) {
+      _step = _SetupStep.sections;
     } else {
       _step = _SetupStep.roomScan;
     }
@@ -48,7 +63,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
   Widget build(BuildContext context) => PopScope(
     canPop:
         _step == _SetupStep.roomScan ||
-        (_step == _SetupStep.detected && widget.manual),
+        (_step == _SetupStep.detected && widget.manual) ||
+        (_step == _SetupStep.layout && widget.editLayout),
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop) setState(() => _step = _SetupStep.values[_step.index - 1]);
     },
@@ -74,9 +90,9 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
       const ShelfPageHeader(
-        eyebrow: 'Room capture',
+        eyebrow: 'Browser sample',
         title: 'Scanning workspace',
-        subtitle: 'Move slowly and capture every wall.',
+        subtitle: 'Sample capture preview • no camera data is recorded.',
         showLogo: false,
       ),
       const SizedBox(height: AppSpacing.md),
@@ -90,7 +106,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'SCAN PROGRESS',
+                    'SAMPLE SCAN PROGRESS',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
@@ -138,7 +154,18 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
   Future<void> _finishRoomScan() async {
     final results = await ref.read(scanServiceProvider).scanContainers();
     if (!mounted) return;
-    ref.read(setupProvider.notifier).saveContainer(results.first);
+    await ref
+        .read(setupProvider.notifier)
+        .saveContainer(
+          ShelfContainer(
+            id: 'sample-${DateTime.now().microsecondsSinceEpoch}',
+            name: results.first.name,
+            type: results.first.type,
+            fromSampleScan: true,
+          ),
+        );
+    await ref.read(setupProvider.notifier).recordSampleRoomScan();
+    if (!mounted) return;
     setState(() => _step = _SetupStep.detected);
   }
 
@@ -155,15 +182,17 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
       key: const ValueKey('detected-spaces'),
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        const ShelfPageHeader(
-          eyebrow: 'Room scan complete',
-          title: 'Room captured',
-          subtitle: 'Review Shelf’s suggestions before setup.',
+        ShelfPageHeader(
+          eyebrow: widget.manual ? 'Manual setup' : 'Browser sample',
+          title: widget.manual ? 'Storage space' : 'Room captured',
+          subtitle: widget.manual
+              ? 'Review this container before choosing its layout.'
+              : 'Review sample suggestions before setup.',
         ),
         const SizedBox(height: AppSpacing.md),
         HardShadowCard(
           color: Theme.of(context).colorScheme.tertiary,
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -174,13 +203,25 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
-                  _StatusPill(label: 'COMPLETE'),
+                  _StatusPill(label: widget.manual ? 'MANUAL' : 'SAMPLE'),
                 ],
               ),
               SizedBox(height: AppSpacing.sm),
-              Text('✓ 3 possible storage spaces'),
-              Text('✓ 1 table detected'),
-              Text('✓ Room scan saved locally'),
+              Text(
+                widget.manual
+                    ? '✓ Container created manually'
+                    : '✓ 3 sample storage suggestions',
+              ),
+              Text(
+                widget.manual
+                    ? '✓ Ready for layout setup'
+                    : '✓ 1 sample container confirmed',
+              ),
+              Text(
+                widget.manual
+                    ? '✓ Setup saved locally'
+                    : '✓ Sample scan recorded locally',
+              ),
               SizedBox(height: AppSpacing.sm),
               LinearProgressIndicator(
                 value: 1,
@@ -202,7 +243,9 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               ),
             ),
             Text(
-              widget.manual ? 'MANUAL' : '2 / 3 CONFIRMED',
+              widget.manual
+                  ? 'MANUAL'
+                  : '${state.containers.where((c) => c.fromSampleScan).length} CONFIRMED',
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],
@@ -215,21 +258,27 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
           status: 'CONFIRMED',
           onTap: () => _renameContainer(container),
         ),
-        if (!widget.manual) ...[
+        if (!widget.manual && container.name != 'Shelf near the west wall') ...[
           const SizedBox(height: AppSpacing.sm),
-          const _DetectionCard(
+          _DetectionCard(
             name: 'Shelf near the west wall',
-            detail: 'Ready to confirm',
+            detail: 'Sample suggestion • tap to confirm',
             status: 'REVIEW',
             dashed: true,
+            onTap: () =>
+                _saveSuggestedContainer('Shelf near the west wall', 'Shelf'),
           ),
+        ],
+        if (!widget.manual && container.name != 'Drawer unit by the door') ...[
           const SizedBox(height: AppSpacing.sm),
           _DetectionCard(
             name: 'Drawer unit by the door',
-            detail: 'Needs review',
+            detail: 'Sample suggestion • tap to confirm',
             status: 'REVIEW',
             dashed: true,
             color: Theme.of(context).colorScheme.secondary,
+            onTap: () =>
+                _saveSuggestedContainer('Drawer unit by the door', 'Drawer'),
           ),
         ],
         const SizedBox(height: AppSpacing.md),
@@ -242,34 +291,85 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     );
   }
 
+  Future<void> _saveSuggestedContainer(String name, String type) async {
+    final state = ref.read(setupProvider);
+    final existing = state.containers.where((c) => c.name == name);
+    if (existing.isNotEmpty) {
+      await ref.read(setupProvider.notifier).selectContainer(existing.first.id);
+      return;
+    }
+    await ref
+        .read(setupProvider.notifier)
+        .saveContainer(
+          ShelfContainer(
+            id: 'sample-${DateTime.now().microsecondsSinceEpoch}',
+            name: name,
+            type: type,
+            fromSampleScan: true,
+          ),
+        );
+  }
+
   Future<void> _renameContainer(ShelfContainer container) async {
     final controller = TextEditingController(text: container.name);
-    final name = await showDialog<String>(
+    var type = container.type;
+    final updated = await showDialog<ShelfContainer>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename container'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Container name'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Edit container'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'Container name'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              DropdownButtonFormField<String>(
+                initialValue: type,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: [
+                  for (final option in const [
+                    'Cabinet',
+                    'Shelf',
+                    'Rack',
+                    'Drawer',
+                  ])
+                    DropdownMenuItem(value: option, child: Text(option)),
+                ],
+                onChanged: (value) {
+                  if (value != null) setDialogState(() => type = value);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty) {
+                  Navigator.pop(
+                    context,
+                    container.copyWith(
+                      name: controller.text.trim(),
+                      type: type,
+                    ),
+                  );
+                }
+              },
+              child: const Text('SAVE'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('SAVE'),
-          ),
-        ],
       ),
     );
-    controller.dispose();
-    if (name != null && name.isNotEmpty) {
-      ref
-          .read(setupProvider.notifier)
-          .saveContainer(container.copyWith(name: name));
+    if (updated != null) {
+      await ref.read(setupProvider.notifier).saveContainer(updated);
     }
   }
 
@@ -331,10 +431,58 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     );
   }
 
-  void _useLayout() {
+  Future<void> _useLayout() async {
     final option = _layouts[_selectedLayout];
-    ref.read(setupProvider.notifier).chooseLayout(option.$1, option.$2);
-    setState(() => _step = _SetupStep.sections);
+    var count = option.$2;
+    if (_selectedLayout == 5) {
+      final controller = TextEditingController(
+        text:
+            '${ref.read(setupProvider).sections.isEmpty ? 3 : ref.read(setupProvider).sections.length}',
+      );
+      final customCount = await showDialog<int>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Custom layout'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Number of sections (1–12)',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = int.tryParse(controller.text.trim());
+                if (value != null && value >= 1 && value <= 12) {
+                  Navigator.pop(context, value);
+                }
+              },
+              child: const Text('USE'),
+            ),
+          ],
+        ),
+      );
+      if (customCount == null) return;
+      count = customCount;
+    }
+    try {
+      await ref.read(setupProvider.notifier).chooseLayout(option.$1, count);
+      if (mounted) {
+        setState(() => _step = _SetupStep.sections);
+      }
+    } on StateError catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
   }
 
   Widget _selectSection() {
@@ -347,7 +495,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         ShelfPageHeader(
           eyebrow: state.container?.name ?? 'Equipment Cabinet',
           title: 'Select a section',
-          subtitle: 'Scan one section at a time.',
+          subtitle: 'Add items to one section at a time.',
           showLogo: false,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -364,12 +512,20 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                   ),
-                  _StatusPill(label: '0 / ${state.sections.length}'),
+                  _StatusPill(
+                    label:
+                        '${state.sections.where((s) => state.countForSection(s.id) > 0).length} / ${state.sections.length}',
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              const LinearProgressIndicator(
-                value: .03,
+              LinearProgressIndicator(
+                value: state.sections.isEmpty
+                    ? 0
+                    : state.sections
+                              .where((s) => state.countForSection(s.id) > 0)
+                              .length /
+                          state.sections.length,
                 minHeight: 10,
                 color: Color(0xFFCCFF00),
                 backgroundColor: Color(0xFFF5F0EF),
@@ -412,34 +568,49 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         for (var index = 0; index < state.sections.length; index++) ...[
-          HardShadowCard(
-            color: index == 0
-                ? Theme.of(context).colorScheme.primary
-                : Colors.white,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        state.sections[index].name,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        index == 0 ? 'Ready to scan' : 'Not scanned',
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
-                    ],
+          InkWell(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CandidatePreviewScreen(
+                  section: state.sections[index],
+                  sampleMode: state.container?.fromSampleScan ?? false,
+                ),
+              ),
+            ),
+            child: HardShadowCard(
+              color: index == 0
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.white,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          state.sections[index].name,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          state.countForSection(state.sections[index].id) == 0
+                              ? 'Empty • ready for items'
+                              : '${state.countForSection(state.sections[index].id)} items saved',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _StatusPill(
-                  label: index == 0 ? 'SCAN' : 'PENDING',
-                  color: index == 0
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.secondary,
-                ),
-              ],
+                  _StatusPill(
+                    label: state.countForSection(state.sections[index].id) > 0
+                        ? 'SAVED'
+                        : 'EMPTY',
+                    color: index == 0
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.secondary,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -447,13 +618,16 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         const SizedBox(height: AppSpacing.sm),
         PrimaryActionButton(
           key: const Key('scan-section'),
-          label: first == null ? 'Finish setup' : 'Scan ${first.name}',
+          label: first == null ? 'Finish setup' : 'Add items to ${first.name}',
           onPressed: first == null
               ? () => Navigator.pop(context)
               : () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CandidatePreviewScreen(section: first),
+                    builder: (_) => CandidatePreviewScreen(
+                      section: first,
+                      sampleMode: state.container?.fromSampleScan ?? false,
+                    ),
                   ),
                 ),
         ),
@@ -490,60 +664,290 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         ],
       ),
     );
-    controller.dispose();
     if (name != null && name.isNotEmpty) {
-      ref.read(setupProvider.notifier).renameSection(section.id, name);
+      await ref.read(setupProvider.notifier).renameSection(section.id, name);
     }
   }
 }
 
-class CandidatePreviewScreen extends ConsumerWidget {
-  const CandidatePreviewScreen({super.key, required this.section});
+class CandidatePreviewScreen extends ConsumerStatefulWidget {
+  const CandidatePreviewScreen({
+    super.key,
+    required this.section,
+    this.sampleMode = false,
+  });
   final ShelfSection section;
+  final bool sampleMode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-    body: ShelfMobileRail(
-      child: SafeArea(
-        child: FutureBuilder<List<ScanCandidate>>(
-          future: ref.read(scanServiceProvider).scanItems(section.id),
-          builder: (context, snapshot) {
-            final items = snapshot.data;
-            if (items == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            return ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+  ConsumerState<CandidatePreviewScreen> createState() =>
+      _CandidatePreviewScreenState();
+}
+
+class _CandidatePreviewScreenState
+    extends ConsumerState<CandidatePreviewScreen> {
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sampleMode) Future.microtask(_loadSamples);
+  }
+
+  Future<void> _loadSamples() async {
+    final samples = await ref
+        .read(scanServiceProvider)
+        .scanItems(widget.section.id);
+    if (!mounted) return;
+    await ref
+        .read(setupProvider.notifier)
+        .addSampleCandidates(widget.section.id, samples);
+  }
+
+  Future<void> _edit([ScanCandidate? candidate]) async {
+    final name = TextEditingController(text: candidate?.name ?? '');
+    final category = TextEditingController(
+      text: candidate?.category ?? 'Equipment',
+    );
+    final model = TextEditingController(text: candidate?.model ?? '');
+    final identifier = TextEditingController(text: candidate?.identifier ?? '');
+    final form = GlobalKey<FormState>();
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(candidate == null ? 'Add an item' : 'Edit candidate'),
+        content: Form(
+          key: form,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                ShelfPageHeader(
-                  eyebrow: section.name,
-                  title: 'Review items',
-                  subtitle: 'Confirm Shelf’s suggestions.',
+                TextFormField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: 'Item name'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter an item name'
+                      : null,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                HardShadowCard(
-                  color: Theme.of(context).colorScheme.secondary,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${items.length} POSSIBLE ITEMS FOUND',
-                          style: Theme.of(context).textTheme.labelLarge,
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: category,
+                  decoration: const InputDecoration(labelText: 'Category'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: model,
+                  decoration: const InputDecoration(labelText: 'Model'),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextFormField(
+                  controller: identifier,
+                  decoration: const InputDecoration(
+                    labelText: 'Identifier / serial',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (form.currentState!.validate()) Navigator.pop(context, true);
+            },
+            child: const Text('SAVE'),
+          ),
+        ],
+      ),
+    );
+    if (save == true) {
+      final notifier = ref.read(setupProvider.notifier);
+      if (candidate == null) {
+        await notifier.addCandidate(
+          sectionId: widget.section.id,
+          name: name.text,
+          category: category.text,
+          model: model.text,
+          identifier: identifier.text,
+        );
+      } else {
+        await notifier.updateCandidate(
+          candidate.id,
+          name: name.text,
+          category: category.text,
+          model: model.text,
+          identifier: identifier.text,
+          state: 'accepted',
+        );
+      }
+    }
+  }
+
+  Future<void> _confirm() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final saved = await ref
+        .read(setupProvider.notifier)
+        .confirmCandidates(widget.section.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          saved == 0
+              ? 'No new items to save.'
+              : '$saved items saved to ${widget.section.name}.',
+        ),
+      ),
+    );
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final candidates = ref
+        .watch(setupProvider)
+        .candidates
+        .where(
+          (candidate) =>
+              candidate.sectionId == widget.section.id &&
+              candidate.state != 'confirmed' &&
+              candidate.state != 'rejected',
+        )
+        .toList();
+    final ready = candidates.where((candidate) => candidate.accepted).length;
+    return Scaffold(
+      body: ShelfMobileRail(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            children: [
+              ShelfPageHeader(
+                eyebrow: widget.section.name,
+                title: 'Review items',
+                subtitle: widget.sampleMode
+                    ? 'Sample suggestions • review before saving.'
+                    : 'Add items to this section.',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              HardShadowCard(
+                color: Theme.of(context).colorScheme.secondary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${candidates.length} POSSIBLE ITEMS',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        Expanded(child: _StatusPill(label: '$ready READY')),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: _StatusPill(
+                            label: '${candidates.length - ready} TO REVIEW',
+                            color: Theme.of(context).colorScheme.tertiary,
+                          ),
                         ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (candidates.isEmpty)
+                const HardShadowCard(
+                  child: Text(
+                    'No candidates yet. Add an item manually to this section.',
+                  ),
+                ),
+              for (final candidate in candidates) ...[
+                HardShadowCard(
+                  dashed: !candidate.accepted,
+                  color: candidate.accepted
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.secondary,
+                              border: Border.all(width: 2),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  candidate.name,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                Text(
+                                  candidate.source == 'manual'
+                                      ? candidate.category
+                                      : '${candidate.category} • ${(candidate.confidence * 100).round()}% sample confidence',
+                                  style: Theme.of(context).textTheme.labelSmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          _StatusPill(
+                            label: candidate.accepted ? 'READY' : 'REVIEW',
+                          ),
+                        ],
                       ),
-                      const _StatusPill(label: 'REVIEW'),
+                      const SizedBox(height: AppSpacing.xs),
+                      Wrap(
+                        spacing: 4,
+                        children: [
+                          if (!candidate.accepted)
+                            TextButton(
+                              onPressed: () => ref
+                                  .read(setupProvider.notifier)
+                                  .updateCandidate(
+                                    candidate.id,
+                                    state: 'accepted',
+                                  ),
+                              child: const Text('ACCEPT'),
+                            ),
+                          TextButton(
+                            onPressed: () => _edit(candidate),
+                            child: const Text('EDIT'),
+                          ),
+                          TextButton(
+                            onPressed: () => ref
+                                .read(setupProvider.notifier)
+                                .updateCandidate(
+                                  candidate.id,
+                                  state: 'rejected',
+                                ),
+                            child: const Text('REMOVE'),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                for (var index = 0; index < items.length; index++) ...[
-                  _ReviewItemCard(
-                    candidate: items[index],
-                    review: index == items.length - 1,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                ],
-                const HardShadowCard(
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              InkWell(
+                onTap: () => _edit(),
+                child: const HardShadowCard(
                   child: Row(
                     children: [
                       Text(
@@ -558,18 +962,18 @@ class CandidatePreviewScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-                PrimaryActionButton(
-                  label: 'Confirm inventory',
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            );
-          },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryActionButton(
+                label: _busy ? 'Saving…' : 'Confirm inventory',
+                onPressed: _busy ? null : _confirm,
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _RoomScanIllustration extends StatelessWidget {
@@ -830,56 +1234,6 @@ class _LayoutTile extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
-}
-
-class _ReviewItemCard extends StatelessWidget {
-  const _ReviewItemCard({required this.candidate, required this.review});
-  final ScanCandidate candidate;
-  final bool review;
-  @override
-  Widget build(BuildContext context) => HardShadowCard(
-    dashed: review,
-    color: review
-        ? Theme.of(context).colorScheme.secondary
-        : (candidate.confidence > .92
-              ? Theme.of(context).colorScheme.primary
-              : Colors.white),
-    child: Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary,
-            border: Border.all(width: 2),
-            borderRadius: BorderRadius.circular(7),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                candidate.name,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(
-                '${(candidate.confidence * 100).round()}% confidence',
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ],
-          ),
-        ),
-        _StatusPill(
-          label: review ? 'REVIEW' : 'STORED',
-          color: review
-              ? Theme.of(context).colorScheme.secondary
-              : Theme.of(context).colorScheme.tertiary,
-        ),
-      ],
     ),
   );
 }

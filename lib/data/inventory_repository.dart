@@ -175,6 +175,16 @@ class InventoryRepository {
               'Move items out of sections before removing them.',
             );
           }
+          final movements =
+              await (db.select(db.movementRecords)..where(
+                    (row) =>
+                        row.fromSectionId.equals(section.id) |
+                        row.toSectionId.equals(section.id),
+                  ))
+                  .get();
+          if (movements.isNotEmpty) {
+            throw StateError('This section is part of item movement history.');
+          }
           await (db.delete(
             db.scanCandidates,
           )..where((row) => row.sectionId.equals(section.id))).go();
@@ -222,6 +232,16 @@ class InventoryRepository {
                 .get();
         if (assigned.isNotEmpty) {
           throw StateError('Move items before removing this container.');
+        }
+        final movements =
+            await (db.select(db.movementRecords)..where(
+                  (row) =>
+                      row.fromSectionId.equals(section.id) |
+                      row.toSectionId.equals(section.id),
+                ))
+                .get();
+        if (movements.isNotEmpty) {
+          throw StateError('This container is part of item movement history.');
         }
         await (db.delete(
           db.scanCandidates,

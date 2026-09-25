@@ -86,6 +86,11 @@ class SetupNotifier extends Notifier<SetupState> {
 
   Future<void> selectContainer(String id) => refresh(containerId: id);
 
+  Future<void> removeContainer(String id) async {
+    await repository.removeContainer(id);
+    await refresh();
+  }
+
   Future<void> addSampleCandidates(
     String sectionId,
     List<ScanCandidate> suggestions,
