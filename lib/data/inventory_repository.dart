@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
+import 'dart:convert';
 
 import '../models/shelf_models.dart';
+import '../services/scan_service.dart';
 import '../state/setup_state.dart';
 import 'app_database.dart' hide ScanCandidate;
 
@@ -33,6 +35,7 @@ class InventoryRepository {
           name: row.name,
           type: row.type,
           layoutLabel: row.layoutLabel,
+          geometryJson: row.geometryJson,
           fromSampleScan: row.fromSampleScan,
         ),
     ];
@@ -151,15 +154,17 @@ class InventoryRepository {
             name: container.name.trim(),
             type: container.type,
             layoutLabel: Value(container.layoutLabel),
+            geometryJson: Value(container.geometryJson),
             fromSampleScan: Value(container.fromSampleScan),
           ),
         );
   }
 
-  Future<void> recordSampleRoomScan(
+  Future<List<String>> saveScannedRoom(
     String workspaceId,
-    String containerId,
-  ) async {
+    ShelfRoom room,
+    List<ShelfContainer> accepted,
+  ) => db.transaction(() async {
     final scanId = nextId('scan');
     await db
         .into(db.roomScans)
@@ -167,13 +172,28 @@ class InventoryRepository {
           RoomScansCompanion.insert(
             id: scanId,
             workspaceId: workspaceId,
-            source: 'browser_sample',
+            source: room.backend,
+            geometryJson: Value(jsonEncode(room.toJson())),
           ),
         );
-    await (db.update(db.storageContainers)
-          ..where((row) => row.id.equals(containerId)))
-        .write(StorageContainersCompanion(roomScanId: Value(scanId)));
-  }
+    final ids = <String>[];
+    for (final container in accepted) {
+      ids.add(container.id);
+      await db
+          .into(db.storageContainers)
+          .insert(
+            StorageContainersCompanion.insert(
+              id: container.id,
+              workspaceId: workspaceId,
+              roomScanId: Value(scanId),
+              name: container.name.trim(),
+              type: container.type,
+              geometryJson: Value(container.geometryJson),
+            ),
+          );
+    }
+    return ids;
+  });
 
   Future<void> saveLayout(
     ShelfContainer container,
@@ -280,29 +300,6 @@ class InventoryRepository {
     });
   }
 
-  Future<void> addSampleCandidates(
-    String sectionId,
-    List<ScanCandidate> suggestions,
-  ) async {
-    final existing =
-        await (db.select(db.scanCandidates)..where(
-              (row) =>
-                  row.sectionId.equals(sectionId) &
-                  row.source.equals('browser_sample'),
-            ))
-            .get();
-    if (existing.isNotEmpty) return;
-    for (final suggestion in suggestions) {
-      await addCandidate(
-        sectionId: sectionId,
-        name: suggestion.name,
-        category: suggestion.name.contains('Battery') ? 'Battery' : 'Equipment',
-        confidence: suggestion.confidence,
-        source: 'browser_sample',
-      );
-    }
-  }
-
   Future<void> addCandidate({
     required String sectionId,
     required String name,
@@ -312,6 +309,23 @@ class InventoryRepository {
     double confidence = 1,
     String source = 'manual',
   }) async {
+    if (name.trim().isEmpty) throw StateError('Enter an item name.');
+    if (source != 'manual') {
+      final existing = await (db.select(
+        db.scanCandidates,
+      )..where((row) => row.sectionId.equals(sectionId))).get();
+      if (existing.any(
+        (row) =>
+            row.state != 'rejected' &&
+            ((identifier.trim().isNotEmpty &&
+                    row.identifier.toLowerCase() ==
+                        identifier.trim().toLowerCase()) ||
+                (row.name.toLowerCase() == name.trim().toLowerCase() &&
+                    row.source == source)),
+      )) {
+        return;
+      }
+    }
     await db
         .into(db.scanCandidates)
         .insert(

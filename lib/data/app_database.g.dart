@@ -654,6 +654,18 @@ class $RoomScansTable extends RoomScans
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _geometryJsonMeta = const VerificationMeta(
+    'geometryJson',
+  );
+  @override
+  late final GeneratedColumn<String> geometryJson = GeneratedColumn<String>(
+    'geometry_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
   static const VerificationMeta _capturedAtMeta = const VerificationMeta(
     'capturedAt',
   );
@@ -667,7 +679,13 @@ class $RoomScansTable extends RoomScans
     defaultValue: currentDateAndTime,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, workspaceId, source, capturedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    workspaceId,
+    source,
+    geometryJson,
+    capturedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -704,6 +722,15 @@ class $RoomScansTable extends RoomScans
     } else if (isInserting) {
       context.missing(_sourceMeta);
     }
+    if (data.containsKey('geometry_json')) {
+      context.handle(
+        _geometryJsonMeta,
+        geometryJson.isAcceptableOrUnknown(
+          data['geometry_json']!,
+          _geometryJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('captured_at')) {
       context.handle(
         _capturedAtMeta,
@@ -731,6 +758,10 @@ class $RoomScansTable extends RoomScans
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      geometryJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}geometry_json'],
+      )!,
       capturedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}captured_at'],
@@ -748,11 +779,13 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
   final String id;
   final String workspaceId;
   final String source;
+  final String geometryJson;
   final DateTime capturedAt;
   const RoomScan({
     required this.id,
     required this.workspaceId,
     required this.source,
+    required this.geometryJson,
     required this.capturedAt,
   });
   @override
@@ -761,6 +794,7 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
     map['id'] = Variable<String>(id);
     map['workspace_id'] = Variable<String>(workspaceId);
     map['source'] = Variable<String>(source);
+    map['geometry_json'] = Variable<String>(geometryJson);
     map['captured_at'] = Variable<DateTime>(capturedAt);
     return map;
   }
@@ -770,6 +804,7 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       id: Value(id),
       workspaceId: Value(workspaceId),
       source: Value(source),
+      geometryJson: Value(geometryJson),
       capturedAt: Value(capturedAt),
     );
   }
@@ -783,6 +818,7 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       id: serializer.fromJson<String>(json['id']),
       workspaceId: serializer.fromJson<String>(json['workspaceId']),
       source: serializer.fromJson<String>(json['source']),
+      geometryJson: serializer.fromJson<String>(json['geometryJson']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
     );
   }
@@ -793,6 +829,7 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       'id': serializer.toJson<String>(id),
       'workspaceId': serializer.toJson<String>(workspaceId),
       'source': serializer.toJson<String>(source),
+      'geometryJson': serializer.toJson<String>(geometryJson),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
     };
   }
@@ -801,11 +838,13 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
     String? id,
     String? workspaceId,
     String? source,
+    String? geometryJson,
     DateTime? capturedAt,
   }) => RoomScan(
     id: id ?? this.id,
     workspaceId: workspaceId ?? this.workspaceId,
     source: source ?? this.source,
+    geometryJson: geometryJson ?? this.geometryJson,
     capturedAt: capturedAt ?? this.capturedAt,
   );
   RoomScan copyWithCompanion(RoomScansCompanion data) {
@@ -815,6 +854,9 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
           ? data.workspaceId.value
           : this.workspaceId,
       source: data.source.present ? data.source.value : this.source,
+      geometryJson: data.geometryJson.present
+          ? data.geometryJson.value
+          : this.geometryJson,
       capturedAt: data.capturedAt.present
           ? data.capturedAt.value
           : this.capturedAt,
@@ -827,13 +869,15 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
           ..write('id: $id, ')
           ..write('workspaceId: $workspaceId, ')
           ..write('source: $source, ')
+          ..write('geometryJson: $geometryJson, ')
           ..write('capturedAt: $capturedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, workspaceId, source, capturedAt);
+  int get hashCode =>
+      Object.hash(id, workspaceId, source, geometryJson, capturedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -841,6 +885,7 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
           other.id == this.id &&
           other.workspaceId == this.workspaceId &&
           other.source == this.source &&
+          other.geometryJson == this.geometryJson &&
           other.capturedAt == this.capturedAt);
 }
 
@@ -848,12 +893,14 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
   final Value<String> id;
   final Value<String> workspaceId;
   final Value<String> source;
+  final Value<String> geometryJson;
   final Value<DateTime> capturedAt;
   final Value<int> rowid;
   const RoomScansCompanion({
     this.id = const Value.absent(),
     this.workspaceId = const Value.absent(),
     this.source = const Value.absent(),
+    this.geometryJson = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -861,6 +908,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     required String id,
     required String workspaceId,
     required String source,
+    this.geometryJson = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -870,6 +918,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     Expression<String>? id,
     Expression<String>? workspaceId,
     Expression<String>? source,
+    Expression<String>? geometryJson,
     Expression<DateTime>? capturedAt,
     Expression<int>? rowid,
   }) {
@@ -877,6 +926,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
       if (id != null) 'id': id,
       if (workspaceId != null) 'workspace_id': workspaceId,
       if (source != null) 'source': source,
+      if (geometryJson != null) 'geometry_json': geometryJson,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -886,6 +936,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     Value<String>? id,
     Value<String>? workspaceId,
     Value<String>? source,
+    Value<String>? geometryJson,
     Value<DateTime>? capturedAt,
     Value<int>? rowid,
   }) {
@@ -893,6 +944,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
       id: id ?? this.id,
       workspaceId: workspaceId ?? this.workspaceId,
       source: source ?? this.source,
+      geometryJson: geometryJson ?? this.geometryJson,
       capturedAt: capturedAt ?? this.capturedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -910,6 +962,9 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (geometryJson.present) {
+      map['geometry_json'] = Variable<String>(geometryJson.value);
+    }
     if (capturedAt.present) {
       map['captured_at'] = Variable<DateTime>(capturedAt.value);
     }
@@ -925,6 +980,7 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
           ..write('id: $id, ')
           ..write('workspaceId: $workspaceId, ')
           ..write('source: $source, ')
+          ..write('geometryJson: $geometryJson, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1004,6 +1060,17 @@ class $StorageContainersTable extends StorageContainers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _geometryJsonMeta = const VerificationMeta(
+    'geometryJson',
+  );
+  @override
+  late final GeneratedColumn<String> geometryJson = GeneratedColumn<String>(
+    'geometry_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _fromSampleScanMeta = const VerificationMeta(
     'fromSampleScan',
   );
@@ -1027,6 +1094,7 @@ class $StorageContainersTable extends StorageContainers
     name,
     type,
     layoutLabel,
+    geometryJson,
     fromSampleScan,
   ];
   @override
@@ -1091,6 +1159,15 @@ class $StorageContainersTable extends StorageContainers
         ),
       );
     }
+    if (data.containsKey('geometry_json')) {
+      context.handle(
+        _geometryJsonMeta,
+        geometryJson.isAcceptableOrUnknown(
+          data['geometry_json']!,
+          _geometryJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('from_sample_scan')) {
       context.handle(
         _fromSampleScanMeta,
@@ -1133,6 +1210,10 @@ class $StorageContainersTable extends StorageContainers
         DriftSqlType.string,
         data['${effectivePrefix}layout_label'],
       ),
+      geometryJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}geometry_json'],
+      ),
       fromSampleScan: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}from_sample_scan'],
@@ -1154,6 +1235,7 @@ class StorageContainer extends DataClass
   final String name;
   final String type;
   final String? layoutLabel;
+  final String? geometryJson;
   final bool fromSampleScan;
   const StorageContainer({
     required this.id,
@@ -1162,6 +1244,7 @@ class StorageContainer extends DataClass
     required this.name,
     required this.type,
     this.layoutLabel,
+    this.geometryJson,
     required this.fromSampleScan,
   });
   @override
@@ -1176,6 +1259,9 @@ class StorageContainer extends DataClass
     map['type'] = Variable<String>(type);
     if (!nullToAbsent || layoutLabel != null) {
       map['layout_label'] = Variable<String>(layoutLabel);
+    }
+    if (!nullToAbsent || geometryJson != null) {
+      map['geometry_json'] = Variable<String>(geometryJson);
     }
     map['from_sample_scan'] = Variable<bool>(fromSampleScan);
     return map;
@@ -1193,6 +1279,9 @@ class StorageContainer extends DataClass
       layoutLabel: layoutLabel == null && nullToAbsent
           ? const Value.absent()
           : Value(layoutLabel),
+      geometryJson: geometryJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(geometryJson),
       fromSampleScan: Value(fromSampleScan),
     );
   }
@@ -1209,6 +1298,7 @@ class StorageContainer extends DataClass
       name: serializer.fromJson<String>(json['name']),
       type: serializer.fromJson<String>(json['type']),
       layoutLabel: serializer.fromJson<String?>(json['layoutLabel']),
+      geometryJson: serializer.fromJson<String?>(json['geometryJson']),
       fromSampleScan: serializer.fromJson<bool>(json['fromSampleScan']),
     );
   }
@@ -1222,6 +1312,7 @@ class StorageContainer extends DataClass
       'name': serializer.toJson<String>(name),
       'type': serializer.toJson<String>(type),
       'layoutLabel': serializer.toJson<String?>(layoutLabel),
+      'geometryJson': serializer.toJson<String?>(geometryJson),
       'fromSampleScan': serializer.toJson<bool>(fromSampleScan),
     };
   }
@@ -1233,6 +1324,7 @@ class StorageContainer extends DataClass
     String? name,
     String? type,
     Value<String?> layoutLabel = const Value.absent(),
+    Value<String?> geometryJson = const Value.absent(),
     bool? fromSampleScan,
   }) => StorageContainer(
     id: id ?? this.id,
@@ -1241,6 +1333,7 @@ class StorageContainer extends DataClass
     name: name ?? this.name,
     type: type ?? this.type,
     layoutLabel: layoutLabel.present ? layoutLabel.value : this.layoutLabel,
+    geometryJson: geometryJson.present ? geometryJson.value : this.geometryJson,
     fromSampleScan: fromSampleScan ?? this.fromSampleScan,
   );
   StorageContainer copyWithCompanion(StorageContainersCompanion data) {
@@ -1257,6 +1350,9 @@ class StorageContainer extends DataClass
       layoutLabel: data.layoutLabel.present
           ? data.layoutLabel.value
           : this.layoutLabel,
+      geometryJson: data.geometryJson.present
+          ? data.geometryJson.value
+          : this.geometryJson,
       fromSampleScan: data.fromSampleScan.present
           ? data.fromSampleScan.value
           : this.fromSampleScan,
@@ -1272,6 +1368,7 @@ class StorageContainer extends DataClass
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('layoutLabel: $layoutLabel, ')
+          ..write('geometryJson: $geometryJson, ')
           ..write('fromSampleScan: $fromSampleScan')
           ..write(')'))
         .toString();
@@ -1285,6 +1382,7 @@ class StorageContainer extends DataClass
     name,
     type,
     layoutLabel,
+    geometryJson,
     fromSampleScan,
   );
   @override
@@ -1297,6 +1395,7 @@ class StorageContainer extends DataClass
           other.name == this.name &&
           other.type == this.type &&
           other.layoutLabel == this.layoutLabel &&
+          other.geometryJson == this.geometryJson &&
           other.fromSampleScan == this.fromSampleScan);
 }
 
@@ -1307,6 +1406,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
   final Value<String> name;
   final Value<String> type;
   final Value<String?> layoutLabel;
+  final Value<String?> geometryJson;
   final Value<bool> fromSampleScan;
   final Value<int> rowid;
   const StorageContainersCompanion({
@@ -1316,6 +1416,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.layoutLabel = const Value.absent(),
+    this.geometryJson = const Value.absent(),
     this.fromSampleScan = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1326,6 +1427,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     required String name,
     required String type,
     this.layoutLabel = const Value.absent(),
+    this.geometryJson = const Value.absent(),
     this.fromSampleScan = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1339,6 +1441,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     Expression<String>? name,
     Expression<String>? type,
     Expression<String>? layoutLabel,
+    Expression<String>? geometryJson,
     Expression<bool>? fromSampleScan,
     Expression<int>? rowid,
   }) {
@@ -1349,6 +1452,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
       if (name != null) 'name': name,
       if (type != null) 'type': type,
       if (layoutLabel != null) 'layout_label': layoutLabel,
+      if (geometryJson != null) 'geometry_json': geometryJson,
       if (fromSampleScan != null) 'from_sample_scan': fromSampleScan,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1361,6 +1465,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     Value<String>? name,
     Value<String>? type,
     Value<String?>? layoutLabel,
+    Value<String?>? geometryJson,
     Value<bool>? fromSampleScan,
     Value<int>? rowid,
   }) {
@@ -1371,6 +1476,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
       name: name ?? this.name,
       type: type ?? this.type,
       layoutLabel: layoutLabel ?? this.layoutLabel,
+      geometryJson: geometryJson ?? this.geometryJson,
       fromSampleScan: fromSampleScan ?? this.fromSampleScan,
       rowid: rowid ?? this.rowid,
     );
@@ -1397,6 +1503,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     if (layoutLabel.present) {
       map['layout_label'] = Variable<String>(layoutLabel.value);
     }
+    if (geometryJson.present) {
+      map['geometry_json'] = Variable<String>(geometryJson.value);
+    }
     if (fromSampleScan.present) {
       map['from_sample_scan'] = Variable<bool>(fromSampleScan.value);
     }
@@ -1415,6 +1524,7 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('layoutLabel: $layoutLabel, ')
+          ..write('geometryJson: $geometryJson, ')
           ..write('fromSampleScan: $fromSampleScan, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4642,6 +4752,7 @@ typedef $$RoomScansTableCreateCompanionBuilder =
       required String id,
       required String workspaceId,
       required String source,
+      Value<String> geometryJson,
       Value<DateTime> capturedAt,
       Value<int> rowid,
     });
@@ -4650,6 +4761,7 @@ typedef $$RoomScansTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> workspaceId,
       Value<String> source,
+      Value<String> geometryJson,
       Value<DateTime> capturedAt,
       Value<int> rowid,
     });
@@ -4713,6 +4825,11 @@ class $$RoomScansTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4789,6 +4906,11 @@ class $$RoomScansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get capturedAt => $composableBuilder(
     column: $table.capturedAt,
     builder: (column) => ColumnOrderings(column),
@@ -4832,6 +4954,11 @@ class $$RoomScansTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get capturedAt => $composableBuilder(
     column: $table.capturedAt,
@@ -4919,12 +5046,14 @@ class $$RoomScansTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> workspaceId = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String> geometryJson = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoomScansCompanion(
                 id: id,
                 workspaceId: workspaceId,
                 source: source,
+                geometryJson: geometryJson,
                 capturedAt: capturedAt,
                 rowid: rowid,
               ),
@@ -4933,12 +5062,14 @@ class $$RoomScansTableTableManager
                 required String id,
                 required String workspaceId,
                 required String source,
+                Value<String> geometryJson = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoomScansCompanion.insert(
                 id: id,
                 workspaceId: workspaceId,
                 source: source,
+                geometryJson: geometryJson,
                 capturedAt: capturedAt,
                 rowid: rowid,
               ),
@@ -5042,6 +5173,7 @@ typedef $$StorageContainersTableCreateCompanionBuilder =
       required String name,
       required String type,
       Value<String?> layoutLabel,
+      Value<String?> geometryJson,
       Value<bool> fromSampleScan,
       Value<int> rowid,
     });
@@ -5053,6 +5185,7 @@ typedef $$StorageContainersTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> type,
       Value<String?> layoutLabel,
+      Value<String?> geometryJson,
       Value<bool> fromSampleScan,
       Value<int> rowid,
     });
@@ -5151,6 +5284,11 @@ class $$StorageContainersTableFilterComposer
 
   ColumnFilters<String> get layoutLabel => $composableBuilder(
     column: $table.layoutLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5260,6 +5398,11 @@ class $$StorageContainersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get fromSampleScan => $composableBuilder(
     column: $table.fromSampleScan,
     builder: (column) => ColumnOrderings(column),
@@ -5332,6 +5475,11 @@ class $$StorageContainersTableAnnotationComposer
 
   GeneratedColumn<String> get layoutLabel => $composableBuilder(
     column: $table.layoutLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get geometryJson => $composableBuilder(
+    column: $table.geometryJson,
     builder: (column) => column,
   );
 
@@ -5455,6 +5603,7 @@ class $$StorageContainersTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String?> layoutLabel = const Value.absent(),
+                Value<String?> geometryJson = const Value.absent(),
                 Value<bool> fromSampleScan = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StorageContainersCompanion(
@@ -5464,6 +5613,7 @@ class $$StorageContainersTableTableManager
                 name: name,
                 type: type,
                 layoutLabel: layoutLabel,
+                geometryJson: geometryJson,
                 fromSampleScan: fromSampleScan,
                 rowid: rowid,
               ),
@@ -5475,6 +5625,7 @@ class $$StorageContainersTableTableManager
                 required String name,
                 required String type,
                 Value<String?> layoutLabel = const Value.absent(),
+                Value<String?> geometryJson = const Value.absent(),
                 Value<bool> fromSampleScan = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StorageContainersCompanion.insert(
@@ -5484,6 +5635,7 @@ class $$StorageContainersTableTableManager
                 name: name,
                 type: type,
                 layoutLabel: layoutLabel,
+                geometryJson: geometryJson,
                 fromSampleScan: fromSampleScan,
                 rowid: rowid,
               ),

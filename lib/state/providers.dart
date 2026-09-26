@@ -17,7 +17,7 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
 );
 
 final scanServiceProvider = Provider<ScanService>(
-  (ref) => const DemoScanService(),
+  (ref) => const NativeScanService(),
 );
 
 final setupProvider = NotifierProvider<SetupNotifier, SetupState>(
@@ -58,12 +58,14 @@ class SetupNotifier extends Notifier<SetupState> {
     await refresh(containerId: container.id);
   }
 
-  Future<void> recordSampleRoomScan() async {
+  Future<void> saveScannedRoom(
+    ShelfRoom room,
+    List<ShelfContainer> accepted,
+  ) async {
     final workspace = state.workspace;
-    final container = state.container;
-    if (workspace != null && container != null) {
-      await repository.recordSampleRoomScan(workspace.id, container.id);
-    }
+    if (workspace == null) throw StateError('Create a workspace first.');
+    await repository.saveScannedRoom(workspace.id, room, accepted);
+    await refresh(containerId: accepted.isEmpty ? null : accepted.first.id);
   }
 
   Future<void> chooseLayout(String label, int sectionCount) async {
@@ -91,20 +93,14 @@ class SetupNotifier extends Notifier<SetupState> {
     await refresh();
   }
 
-  Future<void> addSampleCandidates(
-    String sectionId,
-    List<ScanCandidate> suggestions,
-  ) async {
-    await repository.addSampleCandidates(sectionId, suggestions);
-    await refresh();
-  }
-
   Future<void> addCandidate({
     required String sectionId,
     required String name,
     String category = 'Equipment',
     String model = '',
     String identifier = '',
+    double confidence = 1,
+    String source = 'manual',
   }) async {
     await repository.addCandidate(
       sectionId: sectionId,
@@ -112,6 +108,8 @@ class SetupNotifier extends Notifier<SetupState> {
       category: category,
       model: model,
       identifier: identifier,
+      confidence: confidence,
+      source: source,
     );
     await refresh();
   }

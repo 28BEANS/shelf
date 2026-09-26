@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/shelf_models.dart';
@@ -116,6 +117,18 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
       _ScanPage(
         onScan: () => _openSetup(),
         onManual: () => _openSetup(manual: true),
+        onReturn: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const Scaffold(
+              body: ShelfMobileRail(
+                child: SafeArea(
+                  child: InventorySearchPage(initialFilter: 'CHECKED OUT'),
+                ),
+              ),
+            ),
+          ),
+        ),
         onExisting: () {
           final container = ref.read(setupProvider).container;
           if (container != null) {
@@ -160,8 +173,10 @@ class _HomePage extends ConsumerWidget {
         104,
       ),
       children: [
-        const ShelfPageHeader(
-          eyebrow: 'Friday, Sep 5',
+        ShelfPageHeader(
+          eyebrow: MaterialLocalizations.of(
+            context,
+          ).formatMediumDate(DateTime.now()),
           title: 'Your Spaces',
           subtitle: 'Open a space or continue setup.',
         ),
@@ -286,10 +301,12 @@ class _ScanPage extends StatelessWidget {
   const _ScanPage({
     required this.onScan,
     required this.onManual,
+    required this.onReturn,
     required this.onExisting,
   });
   final VoidCallback onScan;
   final VoidCallback onManual;
+  final VoidCallback onReturn;
   final VoidCallback onExisting;
 
   @override
@@ -322,8 +339,10 @@ class _ScanPage extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
-              'Scan the room first. Shelf will identify possible cabinets, shelves, racks, and drawers for you to confirm.',
+            Text(
+              kIsWeb
+                  ? 'Room capture needs a supported iPhone. Use manual setup in this browser.'
+                  : 'Capture room geometry and mark storage for review. LiDAR devices may also suggest storage objects.',
             ),
             const SizedBox(height: AppSpacing.md),
             const ShelfIllustration(height: 132),
@@ -331,7 +350,7 @@ class _ScanPage extends StatelessWidget {
             PrimaryActionButton(
               key: const Key('scan-workspace'),
               label: 'Scan a workspace',
-              onPressed: onScan,
+              onPressed: kIsWeb ? null : onScan,
             ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
@@ -364,23 +383,26 @@ class _ScanPage extends StatelessWidget {
         ),
       ),
       const SizedBox(height: AppSpacing.listItem),
-      HardShadowCard(
-        color: Theme.of(context).colorScheme.tertiary,
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Return borrowed items',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            SizedBox(height: AppSpacing.xs),
-            Text('Scan an item, then confirm its section QR.'),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'START RETURN MODE →',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
-            ),
-          ],
+      InkWell(
+        onTap: onReturn,
+        child: HardShadowCard(
+          color: Theme.of(context).colorScheme.tertiary,
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Return borrowed items',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              SizedBox(height: AppSpacing.xs),
+              Text('Choose an active loan and confirm its return.'),
+              SizedBox(height: AppSpacing.sm),
+              Text(
+                'VIEW ACTIVE LOANS →',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
         ),
       ),
     ],

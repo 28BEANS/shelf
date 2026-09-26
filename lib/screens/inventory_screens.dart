@@ -237,17 +237,15 @@ class ContainerOverviewScreen extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CandidatePreviewScreen(
-          section: section,
-          sampleMode: container.fromSampleScan,
-        ),
+        builder: (_) => CandidatePreviewScreen(section: section),
       ),
     );
   }
 }
 
 class InventorySearchPage extends ConsumerStatefulWidget {
-  const InventorySearchPage({super.key});
+  const InventorySearchPage({super.key, this.initialFilter = 'ALL'});
+  final String initialFilter;
   @override
   ConsumerState<InventorySearchPage> createState() =>
       _InventorySearchPageState();
@@ -255,7 +253,7 @@ class InventorySearchPage extends ConsumerStatefulWidget {
 
 class _InventorySearchPageState extends ConsumerState<InventorySearchPage> {
   final _search = TextEditingController();
-  String _filter = 'ALL';
+  late String _filter = widget.initialFilter;
   @override
   void initState() {
     super.initState();
@@ -550,7 +548,7 @@ class ItemDetailScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                         child: Text(
-                          '${loan.returnedAt == null ? 'Checked out' : 'Returned'} • ${loan.borrower} • Due ${MaterialLocalizations.of(context).formatMediumDate(loan.dueAt)}',
+                          'Checked out ${MaterialLocalizations.of(context).formatMediumDate(loan.checkedOutAt)} to ${loan.borrower}\nDue ${MaterialLocalizations.of(context).formatMediumDate(loan.dueAt)} • ${loan.condition}${loan.notes.isEmpty ? '' : ' • ${loan.notes}'}\n${loan.returnedAt == null ? 'Active loan' : 'Returned ${MaterialLocalizations.of(context).formatMediumDate(loan.returnedAt!)}'}',
                         ),
                       ),
                     for (final move in state.moves.where(
@@ -559,7 +557,7 @@ class ItemDetailScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                         child: Text(
-                          'Moved to ${state.locationFor(move.toSectionId)}',
+                          'Moved ${MaterialLocalizations.of(context).formatMediumDate(move.movedAt)}\n${state.locationFor(move.fromSectionId)} → ${state.locationFor(move.toSectionId)}',
                         ),
                       ),
                     if (state.loans.every((loan) => loan.itemId != item.id) &&

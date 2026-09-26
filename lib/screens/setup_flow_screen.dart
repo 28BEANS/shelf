@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
+import '../services/scan_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/shelf_models.dart';
@@ -85,14 +89,22 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     ),
   );
 
+  ShelfRoom? _capturedRoom;
+  final List<ShelfContainer> _reviewContainers = [];
+  final Set<String> _acceptedContainerIds = {};
+  bool _scanBusy = false;
+  bool _savingReview = false;
+  String? _scanError;
+
   Widget _roomScan() => ListView(
     key: const ValueKey('room-scan'),
     padding: const EdgeInsets.all(AppSpacing.lg),
     children: [
       const ShelfPageHeader(
-        eyebrow: 'Browser sample',
+        eyebrow: 'Room capture',
         title: 'Scanning workspace',
-        subtitle: 'Sample capture preview • no camera data is recorded.',
+        subtitle:
+            'Move slowly and capture every wall. You can mark missed storage in the camera view.',
         showLogo: false,
       ),
       const SizedBox(height: AppSpacing.md),
@@ -102,92 +114,83 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'SAMPLE SCAN PROGRESS',
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
-                const _StatusPill(label: 'ACTIVE', color: Color(0xFFB5EAD7)),
-              ],
+            Text(
+              'CAPTURE STATUS',
+              style: Theme.of(context).textTheme.labelLarge,
             ),
-            const SizedBox(height: AppSpacing.listItem),
-            const LinearProgressIndicator(
-              value: .74,
-              minHeight: 10,
-              backgroundColor: Color(0xFFF5F0EF),
-              color: Color(0xFFCCFF00),
-              borderRadius: BorderRadius.all(Radius.circular(999)),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              _scanError ??
+                  (_scanBusy
+                      ? 'Camera is open. Finish or cancel the capture there.'
+                      : 'Your camera opens when you start. Only actual observations will appear for review.'),
             ),
-            const SizedBox(height: AppSpacing.listItem),
-            const _ScanLine(label: '✓ Walls captured', value: '3 / 4'),
-            const _ScanLine(label: '□ Storage objects found', value: '3'),
-            const _ScanLine(label: '△ Area remaining', value: '1'),
           ],
         ),
       ),
       const SizedBox(height: AppSpacing.md),
-      Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('CANCEL'),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            flex: 2,
-            child: PrimaryActionButton(
-              key: const Key('finish-room-scan'),
-              label: 'Finish scan',
-              onPressed: _finishRoomScan,
-            ),
-          ),
-        ],
+      PrimaryActionButton(
+        key: const Key('finish-room-scan'),
+        label: _scanBusy ? 'Scanning…' : 'Start room scan',
+        onPressed: _scanBusy ? null : _startRoomScan,
+      ),
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('CANCEL'),
       ),
     ],
   );
 
-  Future<void> _finishRoomScan() async {
-    final results = await ref.read(scanServiceProvider).scanContainers();
-    if (!mounted) return;
-    await ref
-        .read(setupProvider.notifier)
-        .saveContainer(
-          ShelfContainer(
-            id: 'sample-${DateTime.now().microsecondsSinceEpoch}',
-            name: results.first.name,
-            type: results.first.type,
-            fromSampleScan: true,
-          ),
+  Future<void> _startRoomScan() async {
+    setState(() {
+      _scanBusy = true;
+      _scanError = null;
+    });
+    try {
+      final room = await ref.read(scanServiceProvider).scanRoom();
+      if (!mounted) return;
+      _capturedRoom = room;
+      _reviewContainers.clear();
+      _acceptedContainerIds.clear();
+      for (final unit in room.storage) {
+        final container = ShelfContainer(
+          id: 'container-${DateTime.now().microsecondsSinceEpoch}-${_reviewContainers.length}',
+          name: unit.name.isEmpty
+              ? '${unit.kind} ${_reviewContainers.length + 1}'
+              : unit.name,
+          type: unit.kind,
+          geometryJson: jsonEncode(unit.toJson()),
         );
-    await ref.read(setupProvider.notifier).recordSampleRoomScan();
-    if (!mounted) return;
-    setState(() => _step = _SetupStep.detected);
+        _reviewContainers.add(container);
+      }
+      setState(() => _step = _SetupStep.detected);
+    } on ScanFailure catch (error) {
+      if (mounted && error.code != 'cancelled') {
+        setState(() => _scanError = error.message);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _scanError = error.toString());
+    } finally {
+      if (mounted) setState(() => _scanBusy = false);
+    }
   }
 
   Widget _detectedSpaces() {
     final state = ref.watch(setupProvider);
-    final container =
-        state.container ??
-        const ShelfContainer(
-          id: 'manual',
-          name: 'New Cabinet',
-          type: 'Cabinet',
-        );
+    final manual = widget.manual || _capturedRoom == null;
+    final containers = manual
+        ? [if (state.container != null) state.container!]
+        : _reviewContainers;
     return ListView(
       key: const ValueKey('detected-spaces'),
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         ShelfPageHeader(
-          eyebrow: widget.manual ? 'Manual setup' : 'Browser sample',
-          title: widget.manual ? 'Storage space' : 'Room captured',
-          subtitle: widget.manual
+          eyebrow: manual ? 'Manual setup' : 'Room scan complete',
+          title: manual ? 'Storage space' : 'Room captured',
+          subtitle: manual
               ? 'Review this container before choosing its layout.'
-              : 'Review sample suggestions before setup.',
+              : 'Review actual observations before saving them.',
         ),
         const SizedBox(height: AppSpacing.md),
         HardShadowCard(
@@ -195,40 +198,24 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'SCAN SUMMARY',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  _StatusPill(label: widget.manual ? 'MANUAL' : 'SAMPLE'),
-                ],
-              ),
-              SizedBox(height: AppSpacing.sm),
               Text(
-                widget.manual
+                'SCAN SUMMARY',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                manual
                     ? '✓ Container created manually'
-                    : '✓ 3 sample storage suggestions',
+                    : '${_capturedRoom!.surfaces.length} surfaces • ${_capturedRoom!.storage.length} storage observations',
               ),
+              if (!manual)
+                Text(
+                  'Backend: ${_capturedRoom!.backend} • dimensions are estimates',
+                ),
               Text(
-                widget.manual
+                manual
                     ? '✓ Ready for layout setup'
-                    : '✓ 1 sample container confirmed',
-              ),
-              Text(
-                widget.manual
-                    ? '✓ Setup saved locally'
-                    : '✓ Sample scan recorded locally',
-              ),
-              SizedBox(height: AppSpacing.sm),
-              LinearProgressIndicator(
-                value: 1,
-                minHeight: 10,
-                color: Color(0xFFCCFF00),
-                backgroundColor: Colors.white,
-                borderRadius: BorderRadius.all(Radius.circular(999)),
+                    : 'Confirm each storage unit before saving',
               ),
             ],
           ),
@@ -243,71 +230,130 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               ),
             ),
             Text(
-              widget.manual
+              manual
                   ? 'MANUAL'
-                  : '${state.containers.where((c) => c.fromSampleScan).length} CONFIRMED',
+                  : '${_acceptedContainerIds.length} / ${containers.length} CONFIRMED',
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        _DetectionCard(
-          name: container.name,
-          detail: widget.manual ? 'Manual entry' : 'Confirmed',
-          color: Theme.of(context).colorScheme.primary,
-          status: 'CONFIRMED',
-          onTap: () => _renameContainer(container),
-        ),
-        if (!widget.manual && container.name != 'Shelf near the west wall') ...[
-          const SizedBox(height: AppSpacing.sm),
-          _DetectionCard(
-            name: 'Shelf near the west wall',
-            detail: 'Sample suggestion • tap to confirm',
-            status: 'REVIEW',
-            dashed: true,
-            onTap: () =>
-                _saveSuggestedContainer('Shelf near the west wall', 'Shelf'),
+        if (containers.isEmpty)
+          const HardShadowCard(
+            child: Text(
+              'No storage was recognized. Mark storage in the live view or add it manually here.',
+            ),
           ),
-        ],
-        if (!widget.manual && container.name != 'Drawer unit by the door') ...[
-          const SizedBox(height: AppSpacing.sm),
+        for (final container in containers) ...[
           _DetectionCard(
-            name: 'Drawer unit by the door',
-            detail: 'Sample suggestion • tap to confirm',
-            status: 'REVIEW',
-            dashed: true,
-            color: Theme.of(context).colorScheme.secondary,
-            onTap: () =>
-                _saveSuggestedContainer('Drawer unit by the door', 'Drawer'),
+            name: container.name,
+            detail: manual
+                ? 'Manual entry'
+                : '${container.type} • ${container.geometryJson == null ? 'Manual entry' : (jsonDecode(container.geometryJson!) as Map)['source']}',
+            color: _acceptedContainerIds.contains(container.id) || manual
+                ? Theme.of(context).colorScheme.primary
+                : Colors.white,
+            status: manual || _acceptedContainerIds.contains(container.id)
+                ? 'CONFIRMED'
+                : 'REVIEW',
+            dashed: !manual && !_acceptedContainerIds.contains(container.id),
+            onTap: () => _renameContainer(container),
           ),
+          if (!manual)
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() {
+                    if (!_acceptedContainerIds.add(container.id)) {
+                      _acceptedContainerIds.remove(container.id);
+                    }
+                  }),
+                  child: Text(
+                    _acceptedContainerIds.contains(container.id)
+                        ? 'UNCONFIRM'
+                        : 'CONFIRM',
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _reviewContainers.removeWhere(
+                      (value) => value.id == container.id,
+                    );
+                    _acceptedContainerIds.remove(container.id);
+                  }),
+                  child: const Text('REMOVE'),
+                ),
+              ],
+            ),
+          const SizedBox(height: AppSpacing.sm),
         ],
+        if (!manual)
+          TextButton(
+            onPressed: _addManualContainer,
+            child: const Text('+ ADD A MISSED CONTAINER'),
+          ),
         const SizedBox(height: AppSpacing.md),
         PrimaryActionButton(
           key: const Key('continue-detected'),
           label: 'Continue',
-          onPressed: () => setState(() => _step = _SetupStep.layout),
+          onPressed: _savingReview
+              ? null
+              : manual
+              ? () => setState(() => _step = _SetupStep.layout)
+              : _saveReviewedRoom,
         ),
       ],
     );
   }
 
-  Future<void> _saveSuggestedContainer(String name, String type) async {
-    final state = ref.read(setupProvider);
-    final existing = state.containers.where((c) => c.name == name);
-    if (existing.isNotEmpty) {
-      await ref.read(setupProvider.notifier).selectContainer(existing.first.id);
+  Future<void> _addManualContainer() async {
+    final id = 'container-${DateTime.now().microsecondsSinceEpoch}';
+    final container = ShelfContainer(
+      id: id,
+      name: 'New Cabinet',
+      type: 'Cabinet',
+    );
+    setState(() => _reviewContainers.add(container));
+    await _renameContainer(container);
+  }
+
+  Future<void> _saveReviewedRoom() async {
+    final room = _capturedRoom;
+    if (room == null || _savingReview) return;
+    if (room.surfaces.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No room surfaces were captured. Scan again or set up manually.',
+          ),
+        ),
+      );
       return;
     }
-    await ref
-        .read(setupProvider.notifier)
-        .saveContainer(
-          ShelfContainer(
-            id: 'sample-${DateTime.now().microsecondsSinceEpoch}',
-            name: name,
-            type: type,
-            fromSampleScan: true,
-          ),
-        );
+    final accepted = _reviewContainers
+        .where((value) => _acceptedContainerIds.contains(value.id))
+        .toList();
+    if (accepted.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Confirm a container or add one manually.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _savingReview = true);
+    try {
+      await ref.read(setupProvider.notifier).saveScannedRoom(room, accepted);
+      if (mounted) setState(() => _step = _SetupStep.layout);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _savingReview = false);
+    }
   }
 
   Future<void> _renameContainer(ShelfContainer container) async {
@@ -336,6 +382,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                     'Shelf',
                     'Rack',
                     'Drawer',
+                    'Storage',
+                    'Unknown',
                   ])
                     DropdownMenuItem(value: option, child: Text(option)),
                 ],
@@ -369,7 +417,16 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
       ),
     );
     if (updated != null) {
-      await ref.read(setupProvider.notifier).saveContainer(updated);
+      if (_capturedRoom != null && !widget.manual) {
+        setState(() {
+          final index = _reviewContainers.indexWhere(
+            (value) => value.id == updated.id,
+          );
+          if (index >= 0) _reviewContainers[index] = updated;
+        });
+      } else {
+        await ref.read(setupProvider.notifier).saveContainer(updated);
+      }
     }
   }
 
@@ -572,10 +629,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => CandidatePreviewScreen(
-                  section: state.sections[index],
-                  sampleMode: state.container?.fromSampleScan ?? false,
-                ),
+                builder: (_) =>
+                    CandidatePreviewScreen(section: state.sections[index]),
               ),
             ),
             child: HardShadowCard(
@@ -624,10 +679,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               : () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => CandidatePreviewScreen(
-                      section: first,
-                      sampleMode: state.container?.fromSampleScan ?? false,
-                    ),
+                    builder: (_) => CandidatePreviewScreen(section: first),
                   ),
                 ),
         ),
@@ -671,13 +723,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
 }
 
 class CandidatePreviewScreen extends ConsumerStatefulWidget {
-  const CandidatePreviewScreen({
-    super.key,
-    required this.section,
-    this.sampleMode = false,
-  });
+  const CandidatePreviewScreen({super.key, required this.section});
   final ShelfSection section;
-  final bool sampleMode;
 
   @override
   ConsumerState<CandidatePreviewScreen> createState() =>
@@ -688,20 +735,38 @@ class _CandidatePreviewScreenState
     extends ConsumerState<CandidatePreviewScreen> {
   bool _busy = false;
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.sampleMode) Future.microtask(_loadSamples);
-  }
-
-  Future<void> _loadSamples() async {
-    final samples = await ref
-        .read(scanServiceProvider)
-        .scanItems(widget.section.id);
-    if (!mounted) return;
-    await ref
-        .read(setupProvider.notifier)
-        .addSampleCandidates(widget.section.id, samples);
+  Future<void> _captureItems() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final suggestions = await ref.read(scanServiceProvider).scanItems();
+      for (final suggestion in suggestions) {
+        await ref
+            .read(setupProvider.notifier)
+            .addCandidate(
+              sectionId: widget.section.id,
+              name: suggestion.name,
+              identifier: suggestion.identifier,
+              confidence: suggestion.confidence,
+              source: suggestion.source,
+            );
+      }
+      if (mounted && suggestions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No readable labels found. Add the item manually.'),
+          ),
+        );
+      }
+    } on ScanFailure catch (error) {
+      if (mounted && error.code != 'cancelled') {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _edit([ScanCandidate? candidate]) async {
@@ -829,9 +894,13 @@ class _CandidatePreviewScreenState
               ShelfPageHeader(
                 eyebrow: widget.section.name,
                 title: 'Review items',
-                subtitle: widget.sampleMode
-                    ? 'Sample suggestions • review before saving.'
-                    : 'Add items to this section.',
+                subtitle:
+                    'Capture a label or barcode, then review suggestions.',
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryActionButton(
+                label: _busy ? 'Opening camera…' : 'Scan items',
+                onPressed: _busy ? null : _captureItems,
               ),
               const SizedBox(height: AppSpacing.md),
               HardShadowCard(
@@ -863,7 +932,7 @@ class _CandidatePreviewScreenState
               if (candidates.isEmpty)
                 const HardShadowCard(
                   child: Text(
-                    'No candidates yet. Add an item manually to this section.',
+                    'No candidates yet. Scan a label or add an item manually.',
                   ),
                 ),
               for (final candidate in candidates) ...[
@@ -900,7 +969,7 @@ class _CandidatePreviewScreenState
                                 Text(
                                   candidate.source == 'manual'
                                       ? candidate.category
-                                      : '${candidate.category} • ${(candidate.confidence * 100).round()}% sample confidence',
+                                      : '${candidate.category} • ${(candidate.confidence * 100).round()}% ${candidate.source} confidence',
                                   style: Theme.of(context).textTheme.labelSmall,
                                 ),
                               ],
@@ -1086,22 +1155,6 @@ class _DetectedObject extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    ),
-  );
-}
-
-class _ScanLine extends StatelessWidget {
-  const _ScanLine({required this.label, required this.value});
-  final String label;
-  final String value;
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(
-      children: [
-        Expanded(child: Text(label)),
-        Text(value, style: Theme.of(context).textTheme.labelSmall),
       ],
     ),
   );

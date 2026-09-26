@@ -46,6 +46,7 @@ class ShelfContainer {
     this.fromSampleScan = false,
     this.workspaceId = '',
     this.layoutLabel,
+    this.geometryJson,
   });
   final String id;
   final String name;
@@ -53,6 +54,7 @@ class ShelfContainer {
   final bool fromSampleScan;
   final String workspaceId;
   final String? layoutLabel;
+  final String? geometryJson;
 
   ShelfContainer copyWith({String? name, String? type, String? layoutLabel}) =>
       ShelfContainer(
@@ -62,6 +64,7 @@ class ShelfContainer {
         fromSampleScan: fromSampleScan,
         workspaceId: workspaceId,
         layoutLabel: layoutLabel ?? this.layoutLabel,
+        geometryJson: geometryJson,
       );
 }
 

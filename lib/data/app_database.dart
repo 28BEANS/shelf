@@ -26,6 +26,7 @@ class RoomScans extends Table {
   TextColumn get id => text()();
   TextColumn get workspaceId => text().references(Workspaces, #id)();
   TextColumn get source => text()();
+  TextColumn get geometryJson => text().withDefault(const Constant('{}'))();
   DateTimeColumn get capturedAt => dateTime().withDefault(currentDateAndTime)();
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -38,6 +39,7 @@ class StorageContainers extends Table {
   TextColumn get name => text()();
   TextColumn get type => text()();
   TextColumn get layoutLabel => text().nullable()();
+  TextColumn get geometryJson => text().nullable()();
   BoolColumn get fromSampleScan =>
       boolean().withDefault(const Constant(false))();
   @override
@@ -136,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -151,6 +153,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(checkoutRecords);
         await m.createTable(scanCandidates);
         await m.createTable(movementRecords);
+      }
+      if (from >= 2 && from < 3) {
+        await m.addColumn(roomScans, roomScans.geometryJson);
+        await m.addColumn(storageContainers, storageContainers.geometryJson);
       }
     },
   );
