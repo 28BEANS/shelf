@@ -21,6 +21,7 @@ void main() {
           kind: 'wall',
           width: 3,
           height: 2.5,
+          depth: 0.1,
           transform: transform,
         ),
       ],
@@ -67,6 +68,12 @@ void main() {
         jsonDecode(rows.single.geometryJson) as Map,
       ).surfaces.single.kind,
       'wall',
+    );
+    expect(
+      ShelfRoom.fromMap(
+        jsonDecode(rows.single.geometryJson) as Map,
+      ).surfaces.single.depth,
+      0.1,
     );
     await database.close();
   });

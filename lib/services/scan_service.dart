@@ -29,16 +29,18 @@ class ShelfSurface {
     required this.kind,
     required this.width,
     required this.height,
+    this.depth = 0,
     required this.transform,
   });
   final String id, kind;
-  final double width, height;
+  final double width, height, depth;
   final List<double> transform;
   Map<String, Object?> toJson() => {
     'id': id,
     'kind': kind,
     'width': width,
     'height': height,
+    'depth': depth,
     'transform': transform,
   };
   factory ShelfSurface.fromMap(Map<dynamic, dynamic> map) => ShelfSurface(
@@ -46,6 +48,7 @@ class ShelfSurface {
     kind: map['kind'] as String,
     width: (map['width'] as num).toDouble(),
     height: (map['height'] as num).toDouble(),
+    depth: (map['depth'] as num?)?.toDouble() ?? 0,
     transform: (map['transform'] as List)
         .map((value) => (value as num).toDouble())
         .toList(),

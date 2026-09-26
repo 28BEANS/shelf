@@ -8,6 +8,46 @@ import 'package:final_project/data/inventory_repository.dart';
 import 'package:final_project/models/shelf_models.dart';
 
 void main() {
+  test('repeating a camera suggestion does not duplicate an item', () async {
+    final database = AppDatabase(NativeDatabase.memory());
+    final repository = InventoryRepository(database);
+    final workspace = await repository.saveWorkspace('Media Room', '');
+    const container = ShelfContainer(
+      id: 'cabinet',
+      name: 'Cabinet',
+      type: 'Cabinet',
+    );
+    await repository.saveContainer(container, workspace);
+    await repository.saveLayout(container, 'One section', ['Top Shelf']);
+    final section = (await repository.load()).sections.single.id;
+    await repository.addCandidate(
+      sectionId: section,
+      name: 'Sony Lens',
+      source: 'ocr',
+    );
+    await repository.addCandidate(
+      sectionId: section,
+      name: 'Sony Lens',
+      source: 'ocr',
+    );
+    var state = await repository.load();
+    expect(state.candidates, hasLength(1));
+    await repository.updateCandidate(
+      state.candidates.single.id,
+      state: 'accepted',
+    );
+    expect(await repository.confirmCandidates(section, workspace), 1);
+    await repository.addCandidate(
+      sectionId: section,
+      name: 'Sony Lens',
+      source: 'ocr',
+    );
+    state = await repository.load();
+    expect(state.candidates, hasLength(1));
+    expect(state.items, hasLength(1));
+    await database.close();
+  });
+
   test(
     'confirmed inventory keeps its sections and movement after reopen',
     () async {

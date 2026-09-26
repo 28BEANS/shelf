@@ -11,6 +11,46 @@ private func matrixValues(_ value: simd_float4x4) -> [Double] {
   return columns.flatMap { [Double($0.x), Double($0.y), Double($0.z), Double($0.w)] }
 }
 
+private func captureHeader(in view: UIView) {
+  let header = UILabel()
+  header.translatesAutoresizingMaskIntoConstraints = false
+  header.backgroundColor = .white
+  header.textColor = .black
+  header.layer.borderColor = UIColor.black.cgColor
+  header.layer.borderWidth = 2
+  header.layer.cornerRadius = 6
+  header.clipsToBounds = true
+  header.numberOfLines = 2
+  header.font = .boldSystemFont(ofSize: 15)
+  header.text = "  SCANNING WORKSPACE\n  Move slowly and capture every wall"
+  view.addSubview(header)
+  NSLayoutConstraint.activate([
+    header.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+    header.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+    header.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+    header.heightAnchor.constraint(equalToConstant: 62),
+  ])
+}
+
+private func styleProgressCard(_ label: UILabel, in view: UIView, text: String) {
+  label.frame = CGRect(x: 16, y: view.bounds.height - 225,
+                       width: view.bounds.width - 32, height: 112)
+  label.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
+  label.backgroundColor = .white
+  label.textColor = .black
+  label.layer.borderColor = UIColor.black.cgColor
+  label.layer.borderWidth = 2
+  label.layer.cornerRadius = 6
+  label.layer.shadowColor = UIColor.black.cgColor
+  label.layer.shadowOffset = CGSize(width: 5, height: 6)
+  label.layer.shadowOpacity = 1
+  label.layer.shadowRadius = 0
+  label.numberOfLines = 4
+  label.font = .systemFont(ofSize: 14, weight: .semibold)
+  label.text = text
+  view.addSubview(label)
+}
+
 final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
   private var presenter: UIViewController? {
     UIApplication.shared.connectedScenes
@@ -37,8 +77,18 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
               "itemCamera": UIImagePickerController.isSourceTypeAvailable(.camera),
               "semanticStorage": ShelfARController.hasDetector])
     case "startRoom":
+      var roomSupported = ARWorldTrackingConfiguration.isSupported
+      if #available(iOS 16.0, *), RoomCaptureSession.isSupported { roomSupported = true }
+      guard roomSupported else {
+        result(FlutterError(code: "unsupported", message: "Room tracking is not supported on this device.", details: nil))
+        return
+      }
       authorizeCamera(result: result) { [weak self] in self?.startRoom(result: result) }
     case "startItems":
+      guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+        result(FlutterError(code: "unavailable", message: "A physical camera is required for item capture.", details: nil))
+        return
+      }
       authorizeCamera(result: result) { [weak self] in self?.startItems(result: result) }
     case "cancel":
       roomController?.dismiss(animated: true)
@@ -165,6 +215,7 @@ private final class ShelfRoomPlanController: UIViewController, RoomCaptureViewDe
   var completion: ((Result<[String: Any], Error>) -> Void)?
   private let captureView = RoomCaptureView(frame: .zero)
   private var cancelled = false
+  private let status = UILabel()
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -173,8 +224,11 @@ private final class ShelfRoomPlanController: UIViewController, RoomCaptureViewDe
     captureView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     captureView.delegate = self
     view.addSubview(captureView)
+    captureHeader(in: view)
+    styleProgressCard(status, in: view,
+      text: "  SCAN PROGRESS                         ACTIVE\n  RoomPlan is capturing room geometry\n  Review storage after finishing")
     addButton("Cancel", x: 16, action: #selector(cancel))
-    addButton("Finish", x: 105, action: #selector(finishScan))
+    addButton("Finish scan", x: 110, width: view.bounds.width - 126, action: #selector(finishScan))
   }
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
@@ -184,16 +238,17 @@ private final class ShelfRoomPlanController: UIViewController, RoomCaptureViewDe
     super.viewDidDisappear(animated)
     captureView.captureSession.stop()
   }
-  private func addButton(_ title: String, x: CGFloat, action: Selector) {
+  private func addButton(_ title: String, x: CGFloat, width: CGFloat = 86, action: Selector) {
     let button = UIButton(type: .system)
     button.setTitle(title, for: .normal)
     button.setTitleColor(.black, for: .normal)
     button.titleLabel?.font = .boldSystemFont(ofSize: 14)
-    button.backgroundColor = title == "Finish" ? UIColor(red: 0.8, green: 1, blue: 0, alpha: 1) : .white
+    button.backgroundColor = title == "Finish scan" ? UIColor(red: 0.8, green: 1, blue: 0, alpha: 1) : .white
     button.layer.borderColor = UIColor.black.cgColor
     button.layer.borderWidth = 2
     button.layer.cornerRadius = 6
-    button.frame = CGRect(x: x, y: 55, width: 82, height: 42)
+    button.frame = CGRect(x: x, y: view.bounds.height - 93, width: width, height: 48)
+    button.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
     button.addTarget(self, action: action, for: .touchUpInside)
     view.addSubview(button)
   }
@@ -222,6 +277,7 @@ private final class ShelfRoomPlanController: UIViewController, RoomCaptureViewDe
       .flatMap { kind, values in values.map { surface in
         ["id": surface.identifier.uuidString, "kind": kind,
          "width": Double(surface.dimensions.x), "height": Double(surface.dimensions.y),
+         "depth": Double(surface.dimensions.z),
          "transform": matrixValues(surface.transform)] as [String: Any]
       }}
     let storage: [[String: Any]] = room.objects.compactMap { object in
@@ -276,16 +332,37 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     sceneView.session.delegate = self
     sceneView.session.delegateQueue = .main
     view.addSubview(sceneView)
+    let reticle = UIView()
+    reticle.translatesAutoresizingMaskIntoConstraints = false
+    reticle.isUserInteractionEnabled = false
+    reticle.layer.borderColor = UIColor(red: 0.8, green: 1, blue: 0, alpha: 1).cgColor
+    reticle.layer.borderWidth = 3
+    reticle.layer.cornerRadius = 20
+    reticle.backgroundColor = UIColor.black.withAlphaComponent(0.16)
+    view.addSubview(reticle)
+    NSLayoutConstraint.activate([
+      reticle.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      reticle.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      reticle.widthAnchor.constraint(equalToConstant: 40),
+      reticle.heightAnchor.constraint(equalToConstant: 40),
+    ])
+    let dot = UIView()
+    dot.translatesAutoresizingMaskIntoConstraints = false
+    dot.backgroundColor = UIColor(red: 0.8, green: 1, blue: 0, alpha: 1)
+    dot.layer.cornerRadius = 3
+    reticle.addSubview(dot)
+    NSLayoutConstraint.activate([
+      dot.centerXAnchor.constraint(equalTo: reticle.centerXAnchor),
+      dot.centerYAnchor.constraint(equalTo: reticle.centerYAnchor),
+      dot.widthAnchor.constraint(equalToConstant: 6),
+      dot.heightAnchor.constraint(equalToConstant: 6),
+    ])
+    captureHeader(in: view)
     addButton("Cancel", x: 16, action: #selector(cancel))
-    addButton("Mark storage", x: 105, width: 120, action: #selector(markStorage))
-    addButton("Finish", x: 233, action: #selector(finishScan))
-    status.frame = CGRect(x: 16, y: view.bounds.height - 100, width: view.bounds.width - 32, height: 70)
-    status.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
-    status.numberOfLines = 2
-    status.textColor = .white
-    status.backgroundColor = UIColor.black.withAlphaComponent(0.7)
-    status.text = trackingMessage
-    view.addSubview(status)
+    addButton("Mark storage", x: 110, width: 118, action: #selector(markStorage))
+    addButton("Finish", x: 236, width: view.bounds.width - 252, action: #selector(finishScan))
+    styleProgressCard(status, in: view,
+      text: "  SCAN PROGRESS                         ACTIVE\n  0 room surfaces • 0 storage marks\n  \(trackingMessage)")
   }
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
@@ -309,7 +386,8 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     button.layer.borderColor = UIColor.black.cgColor
     button.layer.borderWidth = 2
     button.layer.cornerRadius = 6
-    button.frame = CGRect(x: x, y: 55, width: width, height: 42)
+    button.frame = CGRect(x: x, y: view.bounds.height - 93, width: width, height: 48)
+    button.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
     button.addTarget(self, action: action, for: .touchUpInside)
     view.addSubview(button)
   }
@@ -323,26 +401,32 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     let center = CGPoint(x: sceneView.bounds.midX, y: sceneView.bounds.midY)
     guard let query = sceneView.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .any),
           let result = sceneView.session.raycast(query).first else {
-      status.text = "No surface at center. Point at a storage unit and try again."; return
+      status.text = "  SCAN PROGRESS                         ACTIVE\n  No surface at center\n  Point at storage and try again"; return
     }
     marks.append(["id": UUID().uuidString, "kind": "Unknown", "name": "",
       "source": "manual_ar", "width": 0.0, "height": 0.0, "depth": 0.0,
       "confidence": 1.0, "transform": matrixValues(result.worldTransform)])
-    status.text = "\(marks.count) storage marks • adjust names and types on the next screen."
+    status.text = "  SCAN PROGRESS                         ACTIVE\n  \(planes.count) surfaces • \(marks.count) storage marks\n  Review names and types after finishing"
   }
   @objc private func finishScan() {
     sceneView.session.pause()
     let surfaces: [[String: Any]] = planes.values.map { plane in
       let kind: String
-      switch plane.classification {
-      case .wall: kind = "wall"
-      case .floor: kind = "floor"
-      case .ceiling: kind = "ceiling"
-      case .table: kind = "table"
-      default: kind = "unknown"
+      if ARPlaneAnchor.isClassificationSupported {
+        switch plane.classification {
+        case .wall: kind = "wall"
+        case .floor: kind = "floor"
+        case .ceiling: kind = "ceiling"
+        case .table: kind = "table"
+        default: kind = "unknown"
+        }
+      } else {
+        kind = "unknown"
       }
       return ["id": plane.identifier.uuidString, "kind": kind,
-        "width": Double(plane.extent.x), "height": Double(plane.extent.z),
+        "width": Double(plane.extent.x),
+        "height": plane.alignment == .vertical ? Double(plane.extent.z) : 0.0,
+        "depth": plane.alignment == .horizontal ? Double(plane.extent.z) : 0.0,
         "transform": matrixValues(plane.transform)]
     }
     let stable = detections.filter { detection in
@@ -373,9 +457,9 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
   func session(_ session: ARSession, cameraDidChangeTrackingState camera: ARCamera) {
     DispatchQueue.main.async {
       switch camera.trackingState {
-      case .normal: self.status.text = "Tracking ready • \(self.planes.count) surfaces, \(self.marks.count) marks"
-      case .limited: self.status.text = "Tracking limited. Move slowly with better lighting."
-      case .notAvailable: self.status.text = "Tracking unavailable. Try another area."
+      case .normal: self.status.text = "  SCAN PROGRESS                         ACTIVE\n  \(self.planes.count) surfaces • \(self.marks.count) storage marks\n  Tracking ready"
+      case .limited: self.status.text = "  SCAN PROGRESS                         LIMITED\n  \(self.planes.count) surfaces • \(self.marks.count) storage marks\n  Move slowly with better lighting"
+      case .notAvailable: self.status.text = "  SCAN PROGRESS                         PAUSED\n  Tracking unavailable\n  Try another area"
       }
     }
   }
@@ -395,7 +479,10 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
           guard let label = observation.labels.first, label.confidence >= 0.55 else { continue }
           let name = label.identifier.lowercased()
           let kind: String
-          if name.contains("cabinet") { kind = "Cabinet" }
+          if name.contains("cabinet/shelf") || name.contains("storage box") || name.contains("storage container") {
+            kind = "Storage"
+          }
+          else if name.contains("cabinet") { kind = "Cabinet" }
           else if name.contains("shelf") { kind = "Shelf" }
           else if name.contains("drawer") { kind = "Drawer" }
           else if name.contains("rack") { kind = "Rack" }
@@ -429,7 +516,9 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
           }
         }
       } catch {
-        DispatchQueue.main.async { self.status.text = "Storage model failed. Mark storage manually." }
+        DispatchQueue.main.async {
+          self.status.text = "  SCAN PROGRESS                         ACTIVE\n  Storage model failed\n  Mark storage manually"
+        }
       }
     }
   }
