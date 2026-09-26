@@ -11,6 +11,8 @@ class SetupState {
     this.allSections = const [],
     this.items = const [],
     this.candidates = const [],
+    this.loans = const [],
+    this.moves = const [],
     this.layoutLabel,
   });
 
@@ -23,6 +25,8 @@ class SetupState {
   final List<ShelfSection> allSections;
   final List<ShelfItem> items;
   final List<ScanCandidate> candidates;
+  final List<ShelfLoan> loans;
+  final List<ShelfMove> moves;
   final String? layoutLabel;
 
   bool get isComplete =>
@@ -62,6 +66,8 @@ class SetupState {
     List<ShelfSection>? allSections,
     List<ShelfItem>? items,
     List<ScanCandidate>? candidates,
+    List<ShelfLoan>? loans,
+    List<ShelfMove>? moves,
     String? layoutLabel,
   }) => SetupState(
     loading: loading ?? this.loading,
@@ -73,6 +79,8 @@ class SetupState {
     allSections: allSections ?? this.allSections,
     items: items ?? this.items,
     candidates: candidates ?? this.candidates,
+    loans: loans ?? this.loans,
+    moves: moves ?? this.moves,
     layoutLabel: layoutLabel ?? this.layoutLabel,
   );
 }

@@ -147,4 +147,20 @@ class SetupNotifier extends Notifier<SetupState> {
     await repository.moveItem(itemId, sectionId);
     await refresh();
   }
+
+  Future<void> checkoutItem(
+    String itemId,
+    String borrower,
+    DateTime dueAt,
+    String condition,
+    String notes,
+  ) async {
+    await repository.checkoutItem(itemId, borrower, dueAt, condition, notes);
+    await refresh();
+  }
+
+  Future<void> returnItem(String itemId) async {
+    await repository.returnItem(itemId);
+    await refresh();
+  }
 }

@@ -474,6 +474,21 @@ class ItemDetailScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
               _LocationCard(state: state, item: item, showCurrent: true),
               const SizedBox(height: AppSpacing.md),
+              PrimaryActionButton(
+                label: item.status == ItemStatus.checkedOut
+                    ? 'Return item'
+                    : 'Check out item',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LoanActionScreen(
+                      itemId: item.id,
+                      returning: item.status == ItemStatus.checkedOut,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               HardShadowCard(
                 child: Column(
                   children: [
@@ -519,12 +534,278 @@ class ItemDetailScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+              HardShadowCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACTIVITY',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    for (final loan in state.loans.where(
+                      (loan) => loan.itemId == item.id,
+                    ))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Text(
+                          '${loan.returnedAt == null ? 'Checked out' : 'Returned'} • ${loan.borrower} • Due ${MaterialLocalizations.of(context).formatMediumDate(loan.dueAt)}',
+                        ),
+                      ),
+                    for (final move in state.moves.where(
+                      (move) => move.itemId == item.id,
+                    ))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Text(
+                          'Moved to ${state.locationFor(move.toSectionId)}',
+                        ),
+                      ),
+                    if (state.loans.every((loan) => loan.itemId != item.id) &&
+                        state.moves.every((move) => move.itemId != item.id))
+                      const Text('No activity yet.'),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
       bottomNavigationBar: ShelfBottomNavigation(
         currentIndex: 2,
+        onDestinationSelected: (_) => Navigator.pop(context),
+      ),
+    );
+  }
+}
+
+class LoanActionScreen extends ConsumerStatefulWidget {
+  const LoanActionScreen({
+    super.key,
+    required this.itemId,
+    required this.returning,
+  });
+  final String itemId;
+  final bool returning;
+  @override
+  ConsumerState<LoanActionScreen> createState() => _LoanActionScreenState();
+}
+
+class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
+  final _borrower = TextEditingController();
+  final _notes = TextEditingController();
+  final _form = GlobalKey<FormState>();
+  DateTime? _due;
+  String _condition = 'Good';
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _borrower.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_busy) return;
+    if (!widget.returning &&
+        (!_form.currentState!.validate() || _due == null)) {
+      if (_due == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose an expected return date.')),
+        );
+      }
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      if (widget.returning) {
+        await ref.read(setupProvider.notifier).returnItem(widget.itemId);
+      } else {
+        await ref
+            .read(setupProvider.notifier)
+            .checkoutItem(
+              widget.itemId,
+              _borrower.text,
+              _due!,
+              _condition,
+              _notes.text,
+            );
+      }
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(setupProvider);
+    final matches = state.items.where((item) => item.id == widget.itemId);
+    if (matches.isEmpty) {
+      return const Scaffold(body: Center(child: Text('Item unavailable')));
+    }
+    final item = matches.first;
+    return Scaffold(
+      body: ShelfMobileRail(
+        child: SafeArea(
+          child: Form(
+            key: _form,
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                ShelfPageHeader(
+                  eyebrow: widget.returning
+                      ? 'Return mode'
+                      : item.category.toUpperCase(),
+                  title: widget.returning ? 'Return an item' : 'Check out item',
+                  subtitle: widget.returning
+                      ? 'Confirm this item has been returned.'
+                      : 'Record who is borrowing it.',
+                ),
+                const SizedBox(height: AppSpacing.md),
+                HardShadowCard(
+                  color: Theme.of(context).colorScheme.primary,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.inventory_2_outlined, size: 40),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              item.identifier.isEmpty
+                                  ? state.locationFor(item.homeSectionId)
+                                  : '${item.identifier} • ${state.locationFor(item.homeSectionId)}',
+                            ),
+                          ],
+                        ),
+                      ),
+                      _StatusTag(
+                        label: widget.returning ? 'ON LOAN' : 'STORED',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (!widget.returning) ...[
+                  TextFormField(
+                    controller: _borrower,
+                    decoration: const InputDecoration(labelText: 'Borrower *'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter a borrower'
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  OutlinedButton(
+                    onPressed: () async {
+                      final chosen = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 1),
+                        ),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(
+                          const Duration(days: 3650),
+                        ),
+                      );
+                      if (chosen != null) {
+                        setState(
+                          () => _due = DateTime(
+                            chosen.year,
+                            chosen.month,
+                            chosen.day,
+                            23,
+                            59,
+                          ),
+                        );
+                      }
+                    },
+                    child: Text(
+                      _due == null
+                          ? 'EXPECTED RETURN *'
+                          : 'EXPECTED RETURN: ${MaterialLocalizations.of(context).formatMediumDate(_due!)}',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  HardShadowCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CONDITION',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        Wrap(
+                          spacing: 4,
+                          children: [
+                            for (final value in const [
+                              'Good',
+                              'Fair',
+                              'Needs repair',
+                            ])
+                              ChoiceChip(
+                                label: Text(value.toUpperCase()),
+                                selected: _condition == value,
+                                onSelected: (_) =>
+                                    setState(() => _condition = value),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextFormField(
+                    controller: _notes,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                    ),
+                    maxLines: 2,
+                  ),
+                ] else ...[
+                  HardShadowCard(
+                    color: Theme.of(context).colorScheme.secondary,
+                    child: const Text(
+                      '01  ITEM SELECTED\n02  VERIFY HOME SECTION\n03  CONFIRM RETURN',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+                HardShadowCard(
+                  color: Theme.of(context).colorScheme.tertiary,
+                  child: Text(
+                    'HOME LOCATION STAYS SAVED\n${state.locationFor(item.homeSectionId)}',
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                PrimaryActionButton(
+                  label: _busy
+                      ? 'Saving…'
+                      : widget.returning
+                      ? 'Confirm return'
+                      : 'Confirm checkout',
+                  onPressed: _busy ? null : _submit,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: ShelfBottomNavigation(
+        currentIndex: widget.returning ? 1 : 2,
         onDestinationSelected: (_) => Navigator.pop(context),
       ),
     );

@@ -84,6 +84,38 @@ void main() {
         await database.select(database.movementRecords).get(),
         hasLength(1),
       );
+      final itemId = state.items.single.id;
+      await repository.checkoutItem(
+        itemId,
+        'Vince',
+        DateTime.now().add(const Duration(days: 3)),
+        'Good',
+        'Kit',
+      );
+      await expectLater(
+        repository.checkoutItem(
+          itemId,
+          'Another',
+          DateTime.now().add(const Duration(days: 2)),
+          'Good',
+          '',
+        ),
+        throwsStateError,
+      );
+      await database.close();
+      database = AppDatabase(NativeDatabase(file));
+      repository = InventoryRepository(database);
+      state = await repository.load(selectedContainerId: container.id);
+      expect(state.items.single.status, ItemStatus.checkedOut);
+      expect(state.loans.single.borrower, 'Vince');
+      expect(state.loans.single.returnedAt, isNull);
+      await repository.returnItem(itemId);
+      await expectLater(repository.returnItem(itemId), throwsStateError);
+      state = await repository.load(selectedContainerId: container.id);
+      expect(state.items.single.status, ItemStatus.available);
+      expect(state.items.single.homeSectionId, top);
+      expect(state.items.single.currentSectionId, middle);
+      expect(state.loans.single.returnedAt, isNotNull);
       await database.close();
       await directory.delete(recursive: true);
     },

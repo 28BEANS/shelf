@@ -23,6 +23,8 @@ class InventoryRepository {
       db.inventoryItems,
     )..where((row) => row.workspaceId.equals(workspace.id))).get();
     final candidateRows = await db.select(db.scanCandidates).get();
+    final loanRows = await db.select(db.checkoutRecords).get();
+    final moveRows = await db.select(db.movementRecords).get();
     final containers = [
       for (final row in containerRows)
         ShelfContainer(
@@ -93,6 +95,28 @@ class InventoryRepository {
             state: row.state,
             source: row.source,
             accepted: row.state == 'accepted' || row.state == 'confirmed',
+          ),
+      ],
+      loans: [
+        for (final row in loanRows)
+          ShelfLoan(
+            id: row.id,
+            itemId: row.itemId,
+            borrower: row.borrower,
+            dueAt: row.dueAt,
+            checkedOutAt: row.checkedOutAt,
+            returnedAt: row.returnedAt,
+            condition: row.condition,
+            notes: row.notes,
+          ),
+      ],
+      moves: [
+        for (final row in moveRows)
+          ShelfMove(
+            itemId: row.itemId,
+            fromSectionId: row.fromSectionId,
+            toSectionId: row.toSectionId,
+            movedAt: row.movedAt,
           ),
       ],
       layoutLabel: container?.layoutLabel,
@@ -396,4 +420,62 @@ class InventoryRepository {
               ),
             );
       });
+
+  Future<void> checkoutItem(
+    String itemId,
+    String borrower,
+    DateTime dueAt,
+    String condition,
+    String notes,
+  ) => db.transaction(() async {
+    if (borrower.trim().isEmpty) throw StateError('Enter a borrower.');
+    if (!dueAt.isAfter(DateTime.now())) {
+      throw StateError('Choose a future return date.');
+    }
+    final item = await (db.select(
+      db.inventoryItems,
+    )..where((r) => r.id.equals(itemId))).getSingle();
+    if (item.status == 'checkedOut') {
+      throw StateError('This item is already checked out.');
+    }
+    final active = await (db.select(
+      db.checkoutRecords,
+    )..where((r) => r.itemId.equals(itemId) & r.returnedAt.isNull())).get();
+    if (active.isNotEmpty) {
+      throw StateError('This item already has an active loan.');
+    }
+    await db
+        .into(db.checkoutRecords)
+        .insert(
+          CheckoutRecordsCompanion.insert(
+            id: nextId('loan'),
+            itemId: itemId,
+            borrower: borrower.trim(),
+            dueAt: dueAt,
+            checkedOutAt: Value(DateTime.now()),
+            condition: Value(condition),
+            notes: Value(notes.trim()),
+          ),
+        );
+    await (db.update(db.inventoryItems)..where((r) => r.id.equals(itemId)))
+        .write(const InventoryItemsCompanion(status: Value('checkedOut')));
+  });
+
+  Future<void> returnItem(String itemId) => db.transaction(() async {
+    final active = await (db.select(
+      db.checkoutRecords,
+    )..where((r) => r.itemId.equals(itemId) & r.returnedAt.isNull())).get();
+    if (active.length != 1) throw StateError('This item has no active loan.');
+    await (db.update(db.checkoutRecords)
+          ..where((r) => r.id.equals(active.single.id)))
+        .write(CheckoutRecordsCompanion(returnedAt: Value(DateTime.now())));
+    await (db.update(
+      db.inventoryItems,
+    )..where((r) => r.id.equals(itemId))).write(
+      InventoryItemsCompanion(
+        status: const Value('available'),
+        lastConfirmedAt: Value(DateTime.now()),
+      ),
+    );
+  });
 }

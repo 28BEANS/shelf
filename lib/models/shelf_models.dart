@@ -1,5 +1,32 @@
 enum ItemStatus { available, checkedOut, needsReview }
 
+class ShelfLoan {
+  const ShelfLoan({
+    required this.id,
+    required this.itemId,
+    required this.borrower,
+    required this.dueAt,
+    required this.checkedOutAt,
+    this.returnedAt,
+    required this.condition,
+    required this.notes,
+  });
+  final String id, itemId, borrower, condition, notes;
+  final DateTime dueAt, checkedOutAt;
+  final DateTime? returnedAt;
+}
+
+class ShelfMove {
+  const ShelfMove({
+    required this.itemId,
+    required this.fromSectionId,
+    required this.toSectionId,
+    required this.movedAt,
+  });
+  final String itemId, fromSectionId, toSectionId;
+  final DateTime movedAt;
+}
+
 class WorkspaceDraft {
   const WorkspaceDraft({
     required this.name,
