@@ -143,6 +143,10 @@ not accepted as evidence of a working iPhone scanner.
 
 **Still open:** physical tests on the iPhone 12 mini and a LiDAR iPhone; a licensed, validated Core ML storage detector; measured scan quality and failure-mode evidence; and a full manual Chrome walkthrough. These are not marked as passed Week 2 scanner acceptance. Exact hours and device evidence remain to be recorded.
 
+The model search did not produce a bundle-ready detector: the [furniture model inspected](https://huggingface.co/ksh123k/furniture/raw/main/config.json) labels furniture, chairs, sofas, and tables but not cabinets or shelves, while an [Objects365-derived candidate](https://github.com/Peterande/D-FINE/issues/357) has unresolved checkpoint redistribution questions. Shelf therefore keeps automatic non-LiDAR storage recognition disabled until an appropriate model and its output labels are checked on device.
+
+The native camera view now carries the mockup's scanning header, live status card, outlined actions, and an AR aiming reticle. The geometry contract retains all three surface dimensions; a horizontal AR plane's second extent is stored as depth rather than a wall height. A repository check also confirms repeated OCR suggestions do not create a duplicate item. Simulator and unsigned device builds passed after these changes; real capture remains untested.
+
 ## Week 3 (October 4-10, 2026)
 
 Planned final-week focus: complete the core flow, verify the web fallback and
