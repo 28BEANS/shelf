@@ -8,6 +8,8 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Shelf</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Shelf uses the camera to capture room surfaces and item labels for your local inventory.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
