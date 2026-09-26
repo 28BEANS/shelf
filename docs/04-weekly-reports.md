@@ -65,9 +65,10 @@
 
 ## Week 2 (September 27-October 3, 2026)
 
-This increment was implemented ahead of the planned September 27 start. The
-Week 2 commits are dated September 24-26 at the project's request; the planned
-week range above remains unchanged.
+The earlier increment was implemented ahead of the planned September 27 start.
+Its commits are dated September 24-26 at the project's request. The current
+continuation was committed as work completed on September 27; the planned week
+range above remains unchanged.
 
 **Done in this increment**
 
@@ -105,7 +106,7 @@ week range above remains unchanged.
 
 - RoomPlan capture remains unvalidated because LiDAR hardware was not
   available. No native scanning result is claimed.
-- Per the chosen testing workflow, no simulator was used.
+- No simulator was used for this earlier increment. The September 26-27 continuation below uses one after the testing instruction changed.
 
 **Decisions made, and why**
 
@@ -132,6 +133,15 @@ revised [three-week development plan](../plans/three-week-development-plan.md)
 now makes real room scanning and the complete MVP lifecycle Week 2 acceptance
 requirements. The manual path remains available, but sample scan results are
 not accepted as evidence of a working iPhone scanner.
+
+**September 26-27 continuation, before physical-device access:**
+
+- Replaced production sample scan actions with a typed Flutter/native scanner bridge. The iOS code selects RoomPlan where supported and ARKit world tracking otherwise. ARKit collects planes and lets a user mark storage with a center-screen raycast. RoomPlan maps captured surfaces and recognized storage without inventing unknown labels. A Vision/Core ML detection pipeline is present but only activates when a `StorageDetector.mlmodelc` asset can actually be loaded; no suitable model is bundled, so non-LiDAR semantic storage recognition remains unavailable.
+- Added real camera photo capture for a selected section. Vision OCR and barcode output become review suggestions; the person can accept, edit, remove, or add an item before it becomes inventory. Browser capture is disabled and manual setup remains available. A cancelled or failed scan does not save a room; only confirmed storage is persisted with its backend and geometry.
+- Completed checkout, return, active-loan rejection, and dated loan/movement history. The repository test reopens an active loan, returns it, and verifies the saved home/current sections. Widget tests cover the checkout/return forms and a scan-review fixture that confirms only one of two proposed storage units.
+- Analysis and automated checks pass, the web release build completes, and the iOS simulator build and launch succeed. The simulator screenshot was checked against the mockup style. The simulator cannot validate camera frames, room geometry, storage recognition, OCR accuracy, or LiDAR capture.
+
+**Still open:** physical tests on the iPhone 12 mini and a LiDAR iPhone; a licensed, validated Core ML storage detector; measured scan quality and failure-mode evidence; and a full manual Chrome walkthrough. These are not marked as passed Week 2 scanner acceptance. Exact hours and device evidence remain to be recorded.
 
 ## Week 3 (October 4-10, 2026)
 

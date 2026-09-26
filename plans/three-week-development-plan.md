@@ -8,7 +8,9 @@ September 20, September 27, and October 4 are treated as the starts of weeks 1, 
 
 Deliver a local, single-device inventory app for one shared equipment room. A user can scan a real room on a supported iPhone, review storage detections, configure containers and sections, capture and confirm items, find their physical home, and record a checkout and return. A manual route remains available when capture is unavailable or misses an object. Each week should end with a demonstrable increment.
 
-As of September 26, the repository has the Shelf UI, a local Drift hierarchy, reviewed manual inventory, search, item details, and moves. Its room and item scans are still browser samples; checkout and return are not implemented. Week 2 now completes the real iOS scanning paths and the entire MVP workflow. Week 3 is for validation, fixes, and delivery.
+At the start of September 26, the repository had the Shelf UI, a local Drift hierarchy, reviewed manual inventory, search, item details, and moves. Its room and item scans were browser samples; checkout and return were not implemented. Week 2 targets real iOS scanning paths and the entire MVP workflow. Week 3 is for validation, fixes, and delivery.
+
+**Implementation status, September 27:** the production sample service has been removed. RoomPlan and non-LiDAR ARKit capture paths, in-camera spatial annotation, optional Vision/Core ML request handling, camera OCR/barcode suggestions, review persistence, checkout, return, and history have been coded and compile for iOS. Simulator launch and automated database/widget checks pass. No physical iPhone scan has been run. No licensed storage detector is bundled, so non-LiDAR automatic semantic recognition is unavailable and `semanticStorage` remains false; manual AR marking is available. The physical scan acceptance criteria below remain open.
 
 ## Weekly milestones
 
@@ -50,13 +52,13 @@ As of September 26, the repository has the Shelf UI, a local Drift hierarchy, re
 
 - [x] Persist the workspace, containers, sections, scan candidates, items, checkout-record schema, and movement records locally.
 - [x] Provide manual container and item entry, candidate review, container overviews, search, item details, and basic moves.
-- [ ] Replace the sample room and item scan service in the production flow. A sample UI is useful only as an explicitly separate development fixture; it is not scanning evidence.
+- [x] Replace the sample room and item scan service in the production flow. The remaining scan fixture is test-only and is not scanning evidence.
 
 **September 27: establish the scanner and device gates on the iPhone 12 mini**
 
 - [ ] Use the confirmed iPhone 12 mini as the first physical test device. Record its iOS version, camera permission, AR world-tracking and plane-classification capabilities. Record the LiDAR iPhone when one becomes available; it is needed for RoomPlan validation. Do not use a simulator as scanning evidence.
-- [ ] Define one Flutter-facing `ShelfRoom` contract for surfaces and storage units, including backend, dimensions, world transform, confidence, and stable Shelf IDs. Add capability, start, cancel, and typed-error operations through one native bridge. Select the backend automatically.
-- [ ] Add camera permission and cancellation handling. Cancelled or failed captures must not create a room. Keep the browser path manual and remove sample detections from ordinary production scan actions.
+- [x] Define one Flutter-facing `ShelfRoom` contract for surfaces and storage units, including backend, dimensions, world transform, confidence, and stable Shelf IDs. Add capability, start, cancel, and typed-error operations through one native bridge. Select the backend automatically.
+- [x] Add camera permission and cancellation handling. Cancelled or failed captures must not create a room. Keep the browser path manual and remove sample detections from ordinary production scan actions.
 - [ ] Obtain and bundle a usable, licensed Core ML storage-object detector for the non-LiDAR path, then verify its actual labels and outputs on device. The attachment's `StorageDetectorML` is an example name, not an asset currently in this repository. If a detector is unavailable, record semantic storage recognition as incomplete.
 
 **September 28–29: capture, normalize, and review real rooms**
@@ -65,14 +67,14 @@ As of September 26, the repository has the Shelf UI, a local Drift hierarchy, re
 - [ ] Let a user mark a missed storage unit in the live AR view and resolve that mark against the observed room geometry. Save it as a manual annotation, never as a Vision detection. This keeps a real spatial scan useful if the detector misses an object, while leaving automatic semantic recognition unverified if the model is absent.
 - [ ] Implement RoomPlan capture for supported LiDAR devices and map observed walls, doors, windows, openings, and storage objects into `ShelfRoom`. Show unknown classifications as unknown instead of inventing cabinet/shelf labels. Test this branch as soon as a LiDAR iPhone is available; a build alone is not validation.
 - [ ] Stabilize repeated storage observations and suppress duplicates. Treat confidence and distance thresholds as values to tune on device, not guaranteed accuracy. Handle low light, limited tracking, empty results, model failure, and permission denial.
-- [ ] Connect both backends to the same mockup-aligned room and storage review: confirm, rename, retype, remove, and manually add storage. Persist only confirmed scan results and keep logical container IDs independent of transient AR anchors and coordinates.
+- [x] Connect both backends to the same mockup-aligned room and storage review: confirm, rename, retype, remove, and manually add storage. Persist only confirmed scan results and keep logical container IDs independent of transient AR anchors and coordinates. Native behavior remains unverified on hardware.
 - [ ] Capture a real room on the iPhone 12 mini and retain device, backend, result, and error evidence. Repeat on a LiDAR iPhone as soon as one is available. A missing LiDAR phone or detector leaves the corresponding backend unverified; a manual route does not count as a passed scanner test.
 
 **September 30–October 1: finish item capture and loans**
 
 - [ ] Replace the sample item scan with real camera capture for a selected section. Use only actual on-device OCR/barcode or validated recognition results as suggestions; allow a person to name items the detector cannot identify. Accept, edit, remove, and add before saving. Repeating confirmation must not duplicate items.
-- [ ] Complete checkout with borrower, due date, condition, and notes; update the item and checkout record together and reject a second active checkout. Complete return confirmation, restore availability, retain the home section, and close the loan in the same transaction.
-- [ ] Show loan and movement history in item details or Activity. Preserve home/current location and timestamps through move, checkout, return, and restart. Search and empty states must work with the newly captured inventory.
+- [x] Complete checkout with borrower, due date, condition, and notes; update the item and checkout record together and reject a second active checkout. Complete return confirmation, restore availability, retain the home section, and close the loan in the same transaction.
+- [x] Show loan and movement history in item details or Activity. Preserve home/current location and timestamps through move, checkout, return, and restart. Search and empty states work with saved inventory.
 
 **October 2–3: test the entire workflow on real data**
 
