@@ -118,8 +118,20 @@ week range above remains unchanged.
 
 **Next week I will:**
 
-- Finish checkout, return, active-loan validation, and activity history.
-- Complete the Chrome journey walkthrough and delivery documentation.
+- Replace production sample scans with real ARKit/Vision capture and test it
+  first on the available iPhone 12 mini. Implement RoomPlan and test it as
+  soon as a LiDAR iPhone is available.
+- Finish real section item capture, checkout, return, active-loan validation,
+  and activity history so the full MVP journey works in week 2.
+- Complete the Chrome manual journey walkthrough and record scanner evidence
+  and any unmet hardware or detector prerequisites.
+
+**Scope revision on September 26:** The earlier Week 2 increment above records
+what was actually built; it does not establish scanning as complete. The
+revised [three-week development plan](../plans/three-week-development-plan.md)
+now makes real room scanning and the complete MVP lifecycle Week 2 acceptance
+requirements. The manual path remains available, but sample scan results are
+not accepted as evidence of a working iPhone scanner.
 
 ## Week 3 (October 4-10, 2026)
 
