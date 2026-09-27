@@ -86,8 +86,45 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: _step == _SetupStep.detected
+          ? _reviewFooter()
+          : null,
     ),
   );
+
+  Widget _reviewFooter() {
+    final manual = widget.manual || _capturedRoom == null;
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 390),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!manual && _acceptedContainerIds.isEmpty) ...[
+                const Text('Confirm at least one storage spot to continue.'),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              PrimaryActionButton(
+                key: const Key('continue-detected'),
+                label: manual ? 'Choose a layout' : 'Save confirmed storage',
+                onPressed: _savingReview
+                    ? null
+                    : manual
+                    ? () => setState(() => _step = _SetupStep.layout)
+                    : _acceptedContainerIds.isEmpty
+                    ? null
+                    : _saveReviewedRoom,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   ShelfRoom? _capturedRoom;
   final List<ShelfContainer> _reviewContainers = [];
@@ -104,11 +141,23 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         eyebrow: 'Room capture',
         title: 'Scanning workspace',
         subtitle:
-            'Move slowly and capture every wall. You can mark missed storage in the camera view.',
+            'Move slowly to map the room. Point at each storage unit and tap Mark storage in the camera.',
         showLogo: false,
       ),
       const SizedBox(height: AppSpacing.md),
+      PrimaryActionButton(
+        key: const Key('finish-room-scan'),
+        label: _scanBusy ? 'Scanning…' : 'Start room scan',
+        onPressed: _scanBusy ? null : _startRoomScan,
+      ),
+      const SizedBox(height: AppSpacing.md),
       const _RoomScanIllustration(),
+      const SizedBox(height: AppSpacing.sm),
+      Text(
+        'Example of what to mark in the camera',
+        style: Theme.of(context).textTheme.labelSmall,
+        textAlign: TextAlign.center,
+      ),
       const SizedBox(height: AppSpacing.md),
       HardShadowCard(
         child: Column(
@@ -129,11 +178,6 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         ),
       ),
       const SizedBox(height: AppSpacing.md),
-      PrimaryActionButton(
-        key: const Key('finish-room-scan'),
-        label: _scanBusy ? 'Scanning…' : 'Start room scan',
-        onPressed: _scanBusy ? null : _startRoomScan,
-      ),
       TextButton(
         onPressed: () => Navigator.pop(context),
         child: const Text('CANCEL'),
@@ -183,14 +227,14 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         : _reviewContainers;
     return ListView(
       key: const ValueKey('detected-spaces'),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 130),
       children: [
         ShelfPageHeader(
           eyebrow: manual ? 'Manual setup' : 'Room scan complete',
           title: manual ? 'Storage space' : 'Room captured',
           subtitle: manual
               ? 'Review this container before choosing its layout.'
-              : 'Review actual observations before saving them.',
+              : 'Name the storage you marked, then choose what to keep.',
         ),
         const SizedBox(height: AppSpacing.md),
         HardShadowCard(
@@ -206,26 +250,33 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               Text(
                 manual
                     ? '✓ Container created manually'
-                    : '${_capturedRoom!.surfaces.length} surfaces • ${_capturedRoom!.storage.length} storage observations',
+                    : '${_capturedRoom!.surfaces.length} room surfaces • ${_capturedRoom!.storage.length} storage marks',
               ),
-              if (!manual)
-                Text(
-                  'Backend: ${_capturedRoom!.backend} • dimensions are estimates',
-                ),
+              if (!manual) const Text('Room measurements are estimates.'),
               Text(
                 manual
                     ? '✓ Ready for layout setup'
-                    : 'Confirm each storage unit before saving',
+                    : 'Only storage you confirm will be saved.',
               ),
             ],
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        if (!manual) ...[
+          const HardShadowCard(
+            child: Text(
+              '1. Tap REVIEW to give a mark a name and type.\n'
+              '2. Tap CONFIRM for each storage spot to keep.\n'
+              '3. Save your choices to set up sections.',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
         Row(
           children: [
             Expanded(
               child: Text(
-                'DETECTED SPACES',
+                'STORAGE TO REVIEW',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -241,7 +292,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         if (containers.isEmpty)
           const HardShadowCard(
             child: Text(
-              'No storage was recognized. Mark storage in the live view or add it manually here.',
+              'No storage was marked. You can go back to scan again or add a storage spot here.',
             ),
           ),
         for (final container in containers) ...[
@@ -249,7 +300,12 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
             name: container.name,
             detail: manual
                 ? 'Manual entry'
-                : '${container.type} • ${container.geometryJson == null ? 'Manual entry' : (jsonDecode(container.geometryJson!) as Map)['source']}',
+                : container.geometryJson == null
+                ? 'Added by you'
+                : (jsonDecode(container.geometryJson!) as Map)['source'] ==
+                      'manual_ar'
+                ? 'Marked in the room camera'
+                : 'Suggested by the room camera',
             color: _acceptedContainerIds.contains(container.id) || manual
                 ? Theme.of(context).colorScheme.primary
                 : Colors.white,
@@ -274,6 +330,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                         : 'CONFIRM',
                   ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
                 TextButton(
                   onPressed: () => setState(() {
                     _reviewContainers.removeWhere(
@@ -290,18 +347,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         if (!manual)
           TextButton(
             onPressed: _addManualContainer,
-            child: const Text('+ ADD A MISSED CONTAINER'),
+            child: const Text('+ ADD STORAGE I MISSED'),
           ),
-        const SizedBox(height: AppSpacing.md),
-        PrimaryActionButton(
-          key: const Key('continue-detected'),
-          label: 'Continue',
-          onPressed: _savingReview
-              ? null
-              : manual
-              ? () => setState(() => _step = _SetupStep.layout)
-              : _saveReviewedRoom,
-        ),
       ],
     );
   }
@@ -552,7 +599,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         ShelfPageHeader(
           eyebrow: state.container?.name ?? 'Equipment Cabinet',
           title: 'Select a section',
-          subtitle: 'Add items to one section at a time.',
+          subtitle:
+              'Choose where an item belongs. You can add items to other sections later.',
           showLogo: false,
         ),
         const SizedBox(height: AppSpacing.md),
@@ -565,7 +613,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      'SECTIONS SCANNED',
+                      'SECTIONS WITH ITEMS',
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                   ),
@@ -592,38 +640,6 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        HardShadowCard(
-          child: Column(
-            children: [
-              for (var index = 0; index < state.sections.length; index++) ...[
-                InkWell(
-                  onTap: () => _renameSection(state.sections[index]),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: index == 0
-                          ? Theme.of(context).colorScheme.primary
-                          : const Color(0xFFF5F0EF),
-                      border: Border.all(width: 2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      state.sections[index].name.toUpperCase(),
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                  ),
-                ),
-                if (index != state.sections.length - 1)
-                  const SizedBox(height: AppSpacing.sm),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
         for (var index = 0; index < state.sections.length; index++) ...[
           InkWell(
             onTap: () => Navigator.push(
@@ -637,32 +653,37 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
               color: index == 0
                   ? Theme.of(context).colorScheme.primary
                   : Colors.white,
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          state.sections[index].name,
-                          style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              state.sections[index].name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            Text(
+                              state.countForSection(state.sections[index].id) ==
+                                      0
+                                  ? 'Tap to add items here'
+                                  : '${state.countForSection(state.sections[index].id)} items saved • tap to add more',
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ],
                         ),
-                        Text(
-                          state.countForSection(state.sections[index].id) == 0
-                              ? 'Empty • ready for items'
-                              : '${state.countForSection(state.sections[index].id)} items saved',
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const Icon(Icons.arrow_forward, size: 22),
+                    ],
                   ),
-                  _StatusPill(
-                    label: state.countForSection(state.sections[index].id) > 0
-                        ? 'SAVED'
-                        : 'EMPTY',
-                    color: index == 0
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.secondary,
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton.icon(
+                    onPressed: () => _renameSection(state.sections[index]),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('RENAME SECTION'),
                   ),
                 ],
               ),
@@ -687,7 +708,7 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
         TextButton(
           key: const Key('finish-setup'),
           onPressed: () => Navigator.pop(context),
-          child: const Text('FINISH SETUP WITHOUT SCANNING'),
+          child: const Text('DONE FOR NOW'),
         ),
       ],
     );
@@ -891,16 +912,24 @@ class _CandidatePreviewScreenState
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
+              const ShelfBackButton(label: 'Back to sections'),
+              const SizedBox(height: AppSpacing.md),
               ShelfPageHeader(
                 eyebrow: widget.section.name,
                 title: 'Review items',
                 subtitle:
-                    'Capture a label or barcode, then review suggestions.',
+                    'Scan a label, then check each suggested name before saving.',
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryActionButton(
                 label: _busy ? 'Opening camera…' : 'Scan items',
                 onPressed: _busy ? null : _captureItems,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const HardShadowCard(
+                child: Text(
+                  'Camera text can be wrong. Edit any name that does not match the real item. Only items marked ready will be saved.',
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
               HardShadowCard(
@@ -909,7 +938,7 @@ class _CandidatePreviewScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${candidates.length} POSSIBLE ITEMS',
+                      '${candidates.length} SUGGESTED ITEMS',
                       style: Theme.of(context).textTheme.labelLarge,
                     ),
                     const SizedBox(height: AppSpacing.sm),
@@ -919,7 +948,7 @@ class _CandidatePreviewScreenState
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: _StatusPill(
-                            label: '${candidates.length - ready} TO REVIEW',
+                            label: '${candidates.length - ready} NEED REVIEW',
                             color: Theme.of(context).colorScheme.tertiary,
                           ),
                         ),
@@ -932,7 +961,7 @@ class _CandidatePreviewScreenState
               if (candidates.isEmpty)
                 const HardShadowCard(
                   child: Text(
-                    'No candidates yet. Scan a label or add an item manually.',
+                    'No suggestions yet. Scan a label or add an item yourself.',
                   ),
                 ),
               for (final candidate in candidates) ...[
@@ -968,8 +997,8 @@ class _CandidatePreviewScreenState
                                 ),
                                 Text(
                                   candidate.source == 'manual'
-                                      ? candidate.category
-                                      : '${candidate.category} • ${(candidate.confidence * 100).round()}% ${candidate.source} confidence',
+                                      ? 'Added by you'
+                                      : 'Camera suggestion • check the name',
                                   style: Theme.of(context).textTheme.labelSmall,
                                 ),
                               ],
@@ -982,7 +1011,8 @@ class _CandidatePreviewScreenState
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Wrap(
-                        spacing: 4,
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
                         children: [
                           if (!candidate.accepted)
                             TextButton(
@@ -992,11 +1022,11 @@ class _CandidatePreviewScreenState
                                     candidate.id,
                                     state: 'accepted',
                                   ),
-                              child: const Text('ACCEPT'),
+                              child: const Text('USE THIS'),
                             ),
                           TextButton(
                             onPressed: () => _edit(candidate),
-                            child: const Text('EDIT'),
+                            child: const Text('EDIT DETAILS'),
                           ),
                           TextButton(
                             onPressed: () => ref
@@ -1005,7 +1035,7 @@ class _CandidatePreviewScreenState
                                   candidate.id,
                                   state: 'rejected',
                                 ),
-                            child: const Text('REMOVE'),
+                            child: const Text('DISCARD'),
                           ),
                         ],
                       ),
@@ -1034,8 +1064,13 @@ class _CandidatePreviewScreenState
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryActionButton(
-                label: _busy ? 'Saving…' : 'Confirm inventory',
-                onPressed: _busy ? null : _confirm,
+                label: _busy ? 'Saving…' : 'Save $ready reviewed items',
+                onPressed: _busy || ready == 0 ? null : _confirm,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('REVIEW THESE LATER'),
               ),
             ],
           ),
@@ -1081,7 +1116,7 @@ class _RoomScanIllustration extends StatelessWidget {
           left: 36,
           bottom: 82,
           child: _DetectedObject(
-            label: 'CABINET • 92%',
+            label: 'CABINET',
             width: 132,
             height: 174,
             color: Theme.of(context).colorScheme.primary,
@@ -1091,7 +1126,7 @@ class _RoomScanIllustration extends StatelessWidget {
           right: 28,
           bottom: 72,
           child: _DetectedObject(
-            label: 'SHELF • 86%',
+            label: 'SHELF',
             width: 112,
             height: 142,
             color: Theme.of(context).colorScheme.tertiary,

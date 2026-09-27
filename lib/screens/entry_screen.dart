@@ -86,7 +86,9 @@ class _EntryScreenState extends State<EntryScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    const Text('Sign in to open your shared spaces.'),
+                    const Text(
+                      'Enter test details to open your saved spaces on this device.',
+                    ),
                     const SizedBox(height: AppSpacing.md),
                     ShelfTextField(
                       label: 'Email',
@@ -112,7 +114,7 @@ class _EntryScreenState extends State<EntryScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Local-first • Your room data stays on device',
+                      'Local preview • No online account is created',
                       style: Theme.of(context).textTheme.labelSmall,
                     ),
                   ],

@@ -48,8 +48,8 @@ void main() {
       find.widgetWithText(TextFormField, 'Borrower *'),
       'Vince',
     );
-    await tester.ensureVisible(find.text('EXPECTED RETURN *'));
-    await tester.tap(find.text('EXPECTED RETURN *'));
+    await tester.ensureVisible(find.text('CHOOSE RETURN DATE *'));
+    await tester.tap(find.text('CHOOSE RETURN DATE *'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();

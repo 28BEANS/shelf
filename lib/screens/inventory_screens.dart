@@ -8,7 +8,6 @@ import '../theme.dart';
 import '../widgets/hard_shadow_card.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_brand.dart';
-import '../widgets/shelf_bottom_navigation.dart';
 import 'setup_flow_screen.dart';
 
 class ContainerOverviewScreen extends ConsumerWidget {
@@ -37,134 +36,89 @@ class ContainerOverviewScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
+              const ShelfBackButton(label: 'Back to spaces'),
+              const SizedBox(height: AppSpacing.md),
               ShelfPageHeader(
                 eyebrow: state.workspace?.name ?? 'Workspace',
                 title: container.name,
-                subtitle: '$count items across ${sections.length} sections.',
+                subtitle:
+                    '$count items in ${sections.length} sections. Tap an item to see details or move it.',
               ),
               const SizedBox(height: AppSpacing.md),
-              HardShadowCard(
-                color: Theme.of(context).colorScheme.secondary,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'LAYOUT OVERVIEW',
-                      style: Theme.of(context).textTheme.labelLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    for (var i = 0; i < sections.length; i++) ...[
-                      InkWell(
-                        onTap: () =>
-                            _openSection(context, sections[i], container),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: i == 0
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.white,
-                            border: Border.all(width: 2),
-                            borderRadius: BorderRadius.circular(7),
+              if (sections.isEmpty)
+                const HardShadowCard(
+                  child: Text('Choose a layout to add sections.'),
+                ),
+              for (final section in sections) ...[
+                HardShadowCard(
+                  dashed: state.countForSection(section.id) == 0,
+                  color: state.countForSection(section.id) > 0
+                      ? Theme.of(context).colorScheme.tertiary
+                      : Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              section.name.toUpperCase(),
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  sections[i].name.toUpperCase(),
-                                  style: Theme.of(context).textTheme.labelLarge,
-                                ),
-                              ),
-                              _StatusTag(
-                                label:
-                                    state.countForSection(sections[i].id) == 0
-                                    ? 'EMPTY'
-                                    : '${state.countForSection(sections[i].id)} ITEMS',
-                              ),
-                            ],
+                          _StatusTag(
+                            label: state.countForSection(section.id) == 0
+                                ? 'EMPTY'
+                                : 'SAVED',
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      if (state.countForSection(section.id) == 0)
+                        const Text(
+                          'No items here yet. Add an item when you are ready.',
+                        )
+                      else
+                        for (final item in state.items.where(
+                          (item) => item.currentSectionId == section.id,
+                        ))
+                          InkWell(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ItemDetailScreen(itemId: item.id),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.inventory_2_outlined,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(child: Text(item.name)),
+                                  const Icon(Icons.arrow_forward, size: 18),
+                                ],
+                              ),
+                            ),
+                          ),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton.icon(
+                        onPressed: () =>
+                            _openSection(context, section, container),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: Text(
+                          'ADD ITEMS TO ${section.name.toUpperCase()}',
                         ),
                       ),
-                      if (i < sections.length - 1)
-                        const SizedBox(height: AppSpacing.sm),
                     ],
-                    if (sections.isEmpty)
-                      const Text('Choose a layout to add sections.'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final section in sections) ...[
-                InkWell(
-                  onTap: () => _openSection(context, section, container),
-                  child: HardShadowCard(
-                    dashed: state.countForSection(section.id) == 0,
-                    color: state.countForSection(section.id) == 1
-                        ? Theme.of(context).colorScheme.tertiary
-                        : Colors.white,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                section.name.toUpperCase(),
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ),
-                            _StatusTag(
-                              label: state.countForSection(section.id) == 0
-                                  ? 'EMPTY'
-                                  : 'SAVED',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        if (state.countForSection(section.id) == 0)
-                          const Text('No items scanned yet')
-                        else
-                          for (final item in state.items.where(
-                            (item) => item.currentSectionId == section.id,
-                          ))
-                            InkWell(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ItemDetailScreen(itemId: item.id),
-                                ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.inventory_2_outlined,
-                                      size: 22,
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Expanded(child: Text(item.name)),
-                                    const Icon(Icons.arrow_forward, size: 18),
-                                  ],
-                                ),
-                              ),
-                            ),
-                      ],
-                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
               ],
-              const SizedBox(height: AppSpacing.sm),
-              PrimaryActionButton(
-                label: 'Add more items',
-                onPressed: sections.isEmpty
-                    ? null
-                    : () => _openSection(context, sections.first, container),
-              ),
               TextButton(
                 onPressed: () async {
                   await ref
@@ -222,10 +176,6 @@ class ContainerOverviewScreen extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: ShelfBottomNavigation(
-        currentIndex: 0,
-        onDestinationSelected: (_) => Navigator.pop(context),
-      ),
     );
   }
 
@@ -244,8 +194,13 @@ class ContainerOverviewScreen extends ConsumerWidget {
 }
 
 class InventorySearchPage extends ConsumerStatefulWidget {
-  const InventorySearchPage({super.key, this.initialFilter = 'ALL'});
+  const InventorySearchPage({
+    super.key,
+    this.initialFilter = 'ALL',
+    this.showBack = false,
+  });
   final String initialFilter;
+  final bool showBack;
   @override
   ConsumerState<InventorySearchPage> createState() =>
       _InventorySearchPageState();
@@ -305,6 +260,10 @@ class _InventorySearchPageState extends ConsumerState<InventorySearchPage> {
         104,
       ),
       children: [
+        if (widget.showBack) ...[
+          const ShelfBackButton(label: 'Back to Scan'),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const ShelfPageHeader(
           eyebrow: 'Inventory',
           title: 'Search',
@@ -436,6 +395,8 @@ class ItemDetailScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
+              const ShelfBackButton(label: 'Back to list'),
+              const SizedBox(height: AppSpacing.md),
               ShelfPageHeader(
                 eyebrow: item.status == ItemStatus.available
                     ? 'Stored item'
@@ -470,7 +431,7 @@ class ItemDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              _LocationCard(state: state, item: item, showCurrent: true),
+              _LocationCard(state: state, item: item),
               const SizedBox(height: AppSpacing.md),
               PrimaryActionButton(
                 label: item.status == ItemStatus.checkedOut
@@ -570,10 +531,6 @@ class ItemDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
-      bottomNavigationBar: ShelfBottomNavigation(
-        currentIndex: 2,
-        onDestinationSelected: (_) => Navigator.pop(context),
-      ),
     );
   }
 }
@@ -659,6 +616,8 @@ class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
             child: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
+                const ShelfBackButton(label: 'Back to item'),
+                const SizedBox(height: AppSpacing.md),
                 ShelfPageHeader(
                   eyebrow: widget.returning
                       ? 'Return mode'
@@ -707,7 +666,7 @@ class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
                         : null,
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  OutlinedButton(
+                  OutlinedButton.icon(
                     onPressed: () async {
                       final chosen = await showDatePicker(
                         context: context,
@@ -731,12 +690,15 @@ class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
                         );
                       }
                     },
-                    child: Text(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text(
                       _due == null
-                          ? 'EXPECTED RETURN *'
-                          : 'EXPECTED RETURN: ${MaterialLocalizations.of(context).formatMediumDate(_due!)}',
+                          ? 'CHOOSE RETURN DATE *'
+                          : 'RETURN BY ${MaterialLocalizations.of(context).formatMediumDate(_due!)}',
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.xs),
+                  const Text('A return date is required before checkout.'),
                   const SizedBox(height: AppSpacing.md),
                   HardShadowCard(
                     child: Column(
@@ -747,7 +709,8 @@ class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
                         Wrap(
-                          spacing: 4,
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
                           children: [
                             for (final value in const [
                               'Good',
@@ -802,10 +765,6 @@ class _LoanActionScreenState extends ConsumerState<LoanActionScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: ShelfBottomNavigation(
-        currentIndex: widget.returning ? 1 : 2,
-        onDestinationSelected: (_) => Navigator.pop(context),
-      ),
     );
   }
 }
@@ -843,6 +802,8 @@ class _MoveItemScreenState extends ConsumerState<MoveItemScreen> {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
+              const ShelfBackButton(label: 'Back to item'),
+              const SizedBox(height: AppSpacing.md),
               ShelfPageHeader(
                 eyebrow: item.name,
                 title: 'Move item',
@@ -970,39 +931,40 @@ class _MoveItemScreenState extends ConsumerState<MoveItemScreen> {
 }
 
 class _LocationCard extends StatelessWidget {
-  const _LocationCard({
-    required this.state,
-    required this.item,
-    this.showCurrent = false,
-  });
+  const _LocationCard({required this.state, required this.item});
   final SetupState state;
   final ShelfItem item;
-  final bool showCurrent;
   @override
-  Widget build(BuildContext context) => HardShadowCard(
-    color: Theme.of(context).colorScheme.tertiary,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('WHERE IT BELONGS', style: Theme.of(context).textTheme.labelLarge),
-        Text(
-          state.workspace?.name ?? 'Workspace',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        Text(state.locationFor(item.homeSectionId)),
-        if (showCurrent && item.currentSectionId != item.homeSectionId) ...[
-          const SizedBox(height: AppSpacing.sm),
+  Widget build(BuildContext context) => SizedBox(
+    width: double.infinity,
+    child: HardShadowCard(
+      color: Theme.of(context).colorScheme.tertiary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
             'CURRENT LOCATION',
             style: Theme.of(context).textTheme.labelLarge,
           ),
+          Text(
+            state.workspace?.name ?? 'Workspace',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           Text(state.locationFor(item.currentSectionId)),
+          if (item.currentSectionId != item.homeSectionId) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'ORIGINAL HOME',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            Text(state.locationFor(item.homeSectionId)),
+          ],
+          Text(
+            'Last confirmed ${MaterialLocalizations.of(context).formatMediumDate(item.lastConfirmedAt)}',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
         ],
-        Text(
-          'Last confirmed ${MaterialLocalizations.of(context).formatMediumDate(item.lastConfirmedAt)}, ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(item.lastConfirmedAt))}',
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
-      ],
+      ),
     ),
   );
 }

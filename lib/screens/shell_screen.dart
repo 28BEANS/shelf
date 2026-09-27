@@ -123,7 +123,10 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
             builder: (_) => const Scaffold(
               body: ShelfMobileRail(
                 child: SafeArea(
-                  child: InventorySearchPage(initialFilter: 'CHECKED OUT'),
+                  child: InventorySearchPage(
+                    initialFilter: 'CHECKED OUT',
+                    showBack: true,
+                  ),
                 ),
               ),
             ),
@@ -137,6 +140,14 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
               MaterialPageRoute(
                 builder: (_) =>
                     ContainerOverviewScreen(containerId: container.id),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Create a space first, then choose a section for your items.',
+                ),
               ),
             );
           }
@@ -207,7 +218,7 @@ class _HomePage extends ConsumerWidget {
                     Expanded(
                       child: _Metric(
                         value: '${state.containers.length}',
-                        label: 'containers',
+                        label: state.containers.length == 1 ? 'spot' : 'spots',
                       ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
@@ -321,7 +332,8 @@ class _ScanPage extends StatelessWidget {
       const ShelfPageHeader(
         eyebrow: 'Scan',
         title: 'Add inventory',
-        subtitle: 'Start with a new space or update one you already use.',
+        subtitle:
+            'New here? Scan a room or set it up manually. Already have a space? Add items to a section.',
       ),
       const SizedBox(height: AppSpacing.section),
       HardShadowCard(
@@ -331,7 +343,7 @@ class _ScanPage extends StatelessWidget {
           children: [
             const Align(
               alignment: Alignment.centerLeft,
-              child: _PillLabel(label: 'DEFAULT'),
+              child: _PillLabel(label: 'START HERE'),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
@@ -342,7 +354,7 @@ class _ScanPage extends StatelessWidget {
             Text(
               kIsWeb
                   ? 'Room capture needs a supported iPhone. Use manual setup in this browser.'
-                  : 'Capture room geometry and mark storage for review. LiDAR devices may also suggest storage objects.',
+                  : 'Use the camera to map the room and mark where items belong. You will review everything before saving.',
             ),
             const SizedBox(height: AppSpacing.md),
             const ShelfIllustration(height: 132),
@@ -375,7 +387,7 @@ class _ScanPage extends StatelessWidget {
               Text('Choose a space, container, and section before scanning.'),
               SizedBox(height: AppSpacing.sm),
               Text(
-                'CHOOSE LOCATION →',
+                'OPEN YOUR SPACE →',
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
               ),
             ],
@@ -438,6 +450,7 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
+    height: 82,
     padding: const EdgeInsets.all(8),
     decoration: BoxDecoration(
       color: const Color(0xFFF5F0EF),

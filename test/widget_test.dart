@@ -5,6 +5,8 @@ import 'package:drift/native.dart';
 
 import 'package:final_project/app.dart';
 import 'package:final_project/data/app_database.dart';
+import 'package:final_project/data/inventory_repository.dart';
+import 'package:final_project/models/shelf_models.dart';
 import 'package:final_project/state/providers.dart';
 import 'package:final_project/services/scan_service.dart';
 
@@ -55,7 +57,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Storage space'), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const Key('continue-detected')));
     await tester.tap(find.byKey(const Key('continue-detected')));
     await tester.pumpAndSettle();
     expect(find.text('Choose a layout'), findsOneWidget);
@@ -86,9 +87,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(await database.select(database.roomScans).get(), isEmpty);
     expect(find.text('Room captured'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const ValueKey('detected-spaces')),
+      const Offset(0, -420),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONFIRM').first);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('continue-detected')));
     await tester.tap(find.byKey(const Key('continue-detected')));
     await tester.pumpAndSettle();
     expect(find.text('Choose a layout'), findsOneWidget);
@@ -97,6 +102,39 @@ void main() {
       await database.select(database.storageContainers).get(),
       hasLength(1),
     );
+  });
+
+  testWidgets('search shows the current location after an item moves', (
+    tester,
+  ) async {
+    _phoneViewport(tester);
+    final repository = InventoryRepository(database);
+    final workspaceId = await repository.saveWorkspace('Media Room', '');
+    const container = ShelfContainer(
+      id: 'cabinet',
+      name: 'Cabinet',
+      type: 'Cabinet',
+    );
+    await repository.saveContainer(container, workspaceId);
+    await repository.saveLayout(container, 'Two sections', [
+      'Section 1',
+      'Section 2',
+    ]);
+    final sections = (await repository.load()).sections;
+    await repository.addCandidate(sectionId: sections[0].id, name: 'Camera');
+    await repository.confirmCandidates(sections[0].id, workspaceId);
+    final item = (await repository.load()).items.single;
+    await repository.moveItem(item.id, sections[1].id);
+
+    await _pumpApp(tester, database);
+    await _signIn(tester);
+    await tester.tap(find.text('Search').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('CURRENT LOCATION'), findsOneWidget);
+    expect(find.text('Cabinet → Section 2'), findsOneWidget);
+    expect(find.text('ORIGINAL HOME'), findsOneWidget);
+    expect(find.text('Cabinet → Section 1'), findsOneWidget);
   });
 }
 

@@ -107,6 +107,21 @@ class ShelfPageHeader extends StatelessWidget {
   );
 }
 
+class ShelfBackButton extends StatelessWidget {
+  const ShelfBackButton({super.key, required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.centerLeft,
+    child: TextButton.icon(
+      onPressed: () => Navigator.maybePop(context),
+      icon: const Icon(Icons.arrow_back, size: 18),
+      label: Text(label.toUpperCase()),
+    ),
+  );
+}
+
 class ShelfMobileRail extends StatelessWidget {
   const ShelfMobileRail({super.key, required this.child});
   final Widget child;
