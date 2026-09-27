@@ -3,12 +3,13 @@
 This repository is public. Fill this in honestly and date it; it is checked as
 part of grading.
 
-**Last checked:** 2026-09-20
+**Last checked:** 2026-09-27
 
-Shelf is currently planned as a local, single-device MVP. No inventory data is
-sent to a service in the current implementation. The native scanning features
-may process camera and room data on-device, and the user confirms what becomes a
-saved record.
+Shelf is a local, single-device MVP. No inventory data is sent to a service.
+Room capture and item-label OCR run through the iOS scanning flow; the user
+reviews scan suggestions before they become saved records. On September 27, the
+ARKit path was exercised on an iPhone 12 mini. RoomPlan has not yet been checked
+on a physical LiDAR iPhone.
 
 ## What this app stores
 
@@ -47,16 +48,22 @@ saved record.
 ## Checklist
 
 - [x] `.env` and `env.json` are in `.gitignore`, and `.env.example` is committed.
-- [x] The repository history and current files contain no real API key, secret,
-  password, or token.
+- [x] I searched the repository history and current files for API keys,
+  secrets, passwords and tokens. The matches were names and placeholders only;
+  I found no credential value.
 - [x] No service account file, keystore, or `service_role` key is present.
 - [x] No service-side rules are required because the current MVP keeps data on the
   device. This must be revisited before adding synchronization.
-- [x] The planned sample data and mockups use fictional equipment and borrower
-  information; no real personal data is intended for the final screenshots or
-  video.
+- [x] Test fixtures and mockups use invented equipment and borrower
+  information. The Week 2 iPhone screenshots use the app's real local test data
+  and camera view; I reviewed this set and approved it for public sharing.
 - [x] No course or university credentials are stored in the repository.
-- [x] No identifiable tester data is planned. Anyone whose data is later used in
-  a test must give permission first.
+- [x] These screenshots came from my own iPhone test, and I approved them for
+  public use. I will get permission before adding anyone else's information.
 
 No key was found or revoked during this check.
+
+The iPhone test used a real room and real equipment labels. I reviewed and
+approved the 12 screenshots in `docs/assets/screenshots/week-02/` for public
+sharing. The copied phone database is still outside this repository. The live
+camera capture shows the manual AR path, not automatic cabinet recognition.
