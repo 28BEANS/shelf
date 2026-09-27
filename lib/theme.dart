@@ -81,7 +81,7 @@ final shelfTheme = ThemeData(
     ),
     labelSmall: const TextStyle(
       fontFamily: 'SpaceMono',
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: FontWeight.w400,
       color: Color(0xFF373737),
     ),
@@ -122,6 +122,37 @@ final shelfTheme = ThemeData(
         borderRadius: BorderRadius.circular(999),
         side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
       ),
+      textStyle: const TextStyle(
+        fontFamily: 'PlusJakartaSans',
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: shelfScheme.onSurface,
+      backgroundColor: Colors.white,
+      minimumSize: const Size(0, 44),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: Color(0xFF1A1A1A), width: 1.5),
+      ),
+      textStyle: const TextStyle(
+        fontFamily: 'PlusJakartaSans',
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: shelfScheme.onSurface,
+      backgroundColor: Colors.white,
+      minimumSize: const Size(0, 48),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      side: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       textStyle: const TextStyle(
         fontFamily: 'PlusJakartaSans',
         fontWeight: FontWeight.w800,

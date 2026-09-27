@@ -17,28 +17,16 @@ class ShelfBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SafeArea(
-    minimum: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+    minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
     child: Center(
       heightFactor: 1,
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 360),
-        height: 74,
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondary,
-          border: Border.all(width: 3),
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0xFF1A1A1A),
-              offset: Offset(5, 6),
-              blurRadius: 0,
-            ),
-          ],
-        ),
+        constraints: const BoxConstraints(maxWidth: 440),
+        height: 76,
         child: Row(
           children: [
-            for (var index = 0; index < _items.length; index++)
+            for (var index = 0; index < _items.length; index++) ...[
+              if (index > 0) const SizedBox(width: 10),
               Expanded(
                 child: _NavigationItem(
                   icon: currentIndex == index
@@ -49,6 +37,7 @@ class ShelfBottomNavigation extends StatelessWidget {
                   onTap: () => onDestinationSelected(index),
                 ),
               ),
+            ],
           ],
         ),
       ),
@@ -74,25 +63,26 @@ class _NavigationItem extends StatelessWidget {
     button: true,
     label: label,
     child: Material(
-      color: selected
-          ? Theme.of(context).colorScheme.primary
-          : const Color(0xFFF5F0EF),
+      color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(5),
-        side: selected ? const BorderSide(width: 2) : BorderSide.none,
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFF1A1A1A), width: 2),
       ),
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 28),
-            const SizedBox(height: 2),
+            Icon(icon, size: 25),
+            const SizedBox(height: 3),
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
