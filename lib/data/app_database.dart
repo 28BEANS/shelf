@@ -27,6 +27,11 @@ class RoomScans extends Table {
   TextColumn get workspaceId => text().references(Workspaces, #id)();
   TextColumn get source => text()();
   TextColumn get geometryJson => text().withDefault(const Constant('{}'))();
+  TextColumn get previewPath => text().nullable()();
+  TextColumn get photosJson => text().withDefault(const Constant('[]'))();
+  TextColumn get modelPath => text().nullable()();
+  TextColumn get visualStatus =>
+      text().withDefault(const Constant('unavailable'))();
   DateTimeColumn get capturedAt => dateTime().withDefault(currentDateAndTime)();
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -40,6 +45,9 @@ class StorageContainers extends Table {
   TextColumn get type => text()();
   TextColumn get layoutLabel => text().nullable()();
   TextColumn get geometryJson => text().nullable()();
+  TextColumn get markerPhotoPath => text().nullable()();
+  RealColumn get markerX => real().nullable()();
+  RealColumn get markerY => real().nullable()();
   BoolColumn get fromSampleScan =>
       boolean().withDefault(const Constant(false))();
   @override
@@ -66,6 +74,7 @@ class InventoryItems extends Table {
   TextColumn get homeSectionId => text().references(StorageSections, #id)();
   TextColumn get currentSectionId => text().references(StorageSections, #id)();
   TextColumn get sourceCandidateId => text().nullable()();
+  TextColumn get photoPath => text().nullable()();
   DateTimeColumn get lastConfirmedAt =>
       dateTime().withDefault(currentDateAndTime)();
   @override
@@ -96,6 +105,7 @@ class ScanCandidates extends Table {
   RealColumn get confidence => real().withDefault(const Constant(1.0))();
   TextColumn get state => text().withDefault(const Constant('pending'))();
   TextColumn get source => text().withDefault(const Constant('manual'))();
+  TextColumn get photoPath => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -138,7 +148,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -157,6 +167,17 @@ class AppDatabase extends _$AppDatabase {
       if (from >= 2 && from < 3) {
         await m.addColumn(roomScans, roomScans.geometryJson);
         await m.addColumn(storageContainers, storageContainers.geometryJson);
+      }
+      if (from >= 2 && from < 4) {
+        await m.addColumn(roomScans, roomScans.previewPath);
+        await m.addColumn(roomScans, roomScans.photosJson);
+        await m.addColumn(roomScans, roomScans.modelPath);
+        await m.addColumn(roomScans, roomScans.visualStatus);
+        await m.addColumn(storageContainers, storageContainers.markerPhotoPath);
+        await m.addColumn(storageContainers, storageContainers.markerX);
+        await m.addColumn(storageContainers, storageContainers.markerY);
+        await m.addColumn(inventoryItems, inventoryItems.photoPath);
+        await m.addColumn(scanCandidates, scanCandidates.photoPath);
       }
     },
   );

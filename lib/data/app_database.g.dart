@@ -666,6 +666,52 @@ class $RoomScansTable extends RoomScans
     requiredDuringInsert: false,
     defaultValue: const Constant('{}'),
   );
+  static const VerificationMeta _previewPathMeta = const VerificationMeta(
+    'previewPath',
+  );
+  @override
+  late final GeneratedColumn<String> previewPath = GeneratedColumn<String>(
+    'preview_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _photosJsonMeta = const VerificationMeta(
+    'photosJson',
+  );
+  @override
+  late final GeneratedColumn<String> photosJson = GeneratedColumn<String>(
+    'photos_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _modelPathMeta = const VerificationMeta(
+    'modelPath',
+  );
+  @override
+  late final GeneratedColumn<String> modelPath = GeneratedColumn<String>(
+    'model_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visualStatusMeta = const VerificationMeta(
+    'visualStatus',
+  );
+  @override
+  late final GeneratedColumn<String> visualStatus = GeneratedColumn<String>(
+    'visual_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unavailable'),
+  );
   static const VerificationMeta _capturedAtMeta = const VerificationMeta(
     'capturedAt',
   );
@@ -684,6 +730,10 @@ class $RoomScansTable extends RoomScans
     workspaceId,
     source,
     geometryJson,
+    previewPath,
+    photosJson,
+    modelPath,
+    visualStatus,
     capturedAt,
   ];
   @override
@@ -731,6 +781,36 @@ class $RoomScansTable extends RoomScans
         ),
       );
     }
+    if (data.containsKey('preview_path')) {
+      context.handle(
+        _previewPathMeta,
+        previewPath.isAcceptableOrUnknown(
+          data['preview_path']!,
+          _previewPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('photos_json')) {
+      context.handle(
+        _photosJsonMeta,
+        photosJson.isAcceptableOrUnknown(data['photos_json']!, _photosJsonMeta),
+      );
+    }
+    if (data.containsKey('model_path')) {
+      context.handle(
+        _modelPathMeta,
+        modelPath.isAcceptableOrUnknown(data['model_path']!, _modelPathMeta),
+      );
+    }
+    if (data.containsKey('visual_status')) {
+      context.handle(
+        _visualStatusMeta,
+        visualStatus.isAcceptableOrUnknown(
+          data['visual_status']!,
+          _visualStatusMeta,
+        ),
+      );
+    }
     if (data.containsKey('captured_at')) {
       context.handle(
         _capturedAtMeta,
@@ -762,6 +842,22 @@ class $RoomScansTable extends RoomScans
         DriftSqlType.string,
         data['${effectivePrefix}geometry_json'],
       )!,
+      previewPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preview_path'],
+      ),
+      photosJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photos_json'],
+      )!,
+      modelPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_path'],
+      ),
+      visualStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}visual_status'],
+      )!,
       capturedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}captured_at'],
@@ -780,12 +876,20 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
   final String workspaceId;
   final String source;
   final String geometryJson;
+  final String? previewPath;
+  final String photosJson;
+  final String? modelPath;
+  final String visualStatus;
   final DateTime capturedAt;
   const RoomScan({
     required this.id,
     required this.workspaceId,
     required this.source,
     required this.geometryJson,
+    this.previewPath,
+    required this.photosJson,
+    this.modelPath,
+    required this.visualStatus,
     required this.capturedAt,
   });
   @override
@@ -795,6 +899,14 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
     map['workspace_id'] = Variable<String>(workspaceId);
     map['source'] = Variable<String>(source);
     map['geometry_json'] = Variable<String>(geometryJson);
+    if (!nullToAbsent || previewPath != null) {
+      map['preview_path'] = Variable<String>(previewPath);
+    }
+    map['photos_json'] = Variable<String>(photosJson);
+    if (!nullToAbsent || modelPath != null) {
+      map['model_path'] = Variable<String>(modelPath);
+    }
+    map['visual_status'] = Variable<String>(visualStatus);
     map['captured_at'] = Variable<DateTime>(capturedAt);
     return map;
   }
@@ -805,6 +917,14 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       workspaceId: Value(workspaceId),
       source: Value(source),
       geometryJson: Value(geometryJson),
+      previewPath: previewPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previewPath),
+      photosJson: Value(photosJson),
+      modelPath: modelPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(modelPath),
+      visualStatus: Value(visualStatus),
       capturedAt: Value(capturedAt),
     );
   }
@@ -819,6 +939,10 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       workspaceId: serializer.fromJson<String>(json['workspaceId']),
       source: serializer.fromJson<String>(json['source']),
       geometryJson: serializer.fromJson<String>(json['geometryJson']),
+      previewPath: serializer.fromJson<String?>(json['previewPath']),
+      photosJson: serializer.fromJson<String>(json['photosJson']),
+      modelPath: serializer.fromJson<String?>(json['modelPath']),
+      visualStatus: serializer.fromJson<String>(json['visualStatus']),
       capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
     );
   }
@@ -830,6 +954,10 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       'workspaceId': serializer.toJson<String>(workspaceId),
       'source': serializer.toJson<String>(source),
       'geometryJson': serializer.toJson<String>(geometryJson),
+      'previewPath': serializer.toJson<String?>(previewPath),
+      'photosJson': serializer.toJson<String>(photosJson),
+      'modelPath': serializer.toJson<String?>(modelPath),
+      'visualStatus': serializer.toJson<String>(visualStatus),
       'capturedAt': serializer.toJson<DateTime>(capturedAt),
     };
   }
@@ -839,12 +967,20 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
     String? workspaceId,
     String? source,
     String? geometryJson,
+    Value<String?> previewPath = const Value.absent(),
+    String? photosJson,
+    Value<String?> modelPath = const Value.absent(),
+    String? visualStatus,
     DateTime? capturedAt,
   }) => RoomScan(
     id: id ?? this.id,
     workspaceId: workspaceId ?? this.workspaceId,
     source: source ?? this.source,
     geometryJson: geometryJson ?? this.geometryJson,
+    previewPath: previewPath.present ? previewPath.value : this.previewPath,
+    photosJson: photosJson ?? this.photosJson,
+    modelPath: modelPath.present ? modelPath.value : this.modelPath,
+    visualStatus: visualStatus ?? this.visualStatus,
     capturedAt: capturedAt ?? this.capturedAt,
   );
   RoomScan copyWithCompanion(RoomScansCompanion data) {
@@ -857,6 +993,16 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
       geometryJson: data.geometryJson.present
           ? data.geometryJson.value
           : this.geometryJson,
+      previewPath: data.previewPath.present
+          ? data.previewPath.value
+          : this.previewPath,
+      photosJson: data.photosJson.present
+          ? data.photosJson.value
+          : this.photosJson,
+      modelPath: data.modelPath.present ? data.modelPath.value : this.modelPath,
+      visualStatus: data.visualStatus.present
+          ? data.visualStatus.value
+          : this.visualStatus,
       capturedAt: data.capturedAt.present
           ? data.capturedAt.value
           : this.capturedAt,
@@ -870,14 +1016,27 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
           ..write('workspaceId: $workspaceId, ')
           ..write('source: $source, ')
           ..write('geometryJson: $geometryJson, ')
+          ..write('previewPath: $previewPath, ')
+          ..write('photosJson: $photosJson, ')
+          ..write('modelPath: $modelPath, ')
+          ..write('visualStatus: $visualStatus, ')
           ..write('capturedAt: $capturedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, workspaceId, source, geometryJson, capturedAt);
+  int get hashCode => Object.hash(
+    id,
+    workspaceId,
+    source,
+    geometryJson,
+    previewPath,
+    photosJson,
+    modelPath,
+    visualStatus,
+    capturedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -886,6 +1045,10 @@ class RoomScan extends DataClass implements Insertable<RoomScan> {
           other.workspaceId == this.workspaceId &&
           other.source == this.source &&
           other.geometryJson == this.geometryJson &&
+          other.previewPath == this.previewPath &&
+          other.photosJson == this.photosJson &&
+          other.modelPath == this.modelPath &&
+          other.visualStatus == this.visualStatus &&
           other.capturedAt == this.capturedAt);
 }
 
@@ -894,6 +1057,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
   final Value<String> workspaceId;
   final Value<String> source;
   final Value<String> geometryJson;
+  final Value<String?> previewPath;
+  final Value<String> photosJson;
+  final Value<String?> modelPath;
+  final Value<String> visualStatus;
   final Value<DateTime> capturedAt;
   final Value<int> rowid;
   const RoomScansCompanion({
@@ -901,6 +1068,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     this.workspaceId = const Value.absent(),
     this.source = const Value.absent(),
     this.geometryJson = const Value.absent(),
+    this.previewPath = const Value.absent(),
+    this.photosJson = const Value.absent(),
+    this.modelPath = const Value.absent(),
+    this.visualStatus = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -909,6 +1080,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     required String workspaceId,
     required String source,
     this.geometryJson = const Value.absent(),
+    this.previewPath = const Value.absent(),
+    this.photosJson = const Value.absent(),
+    this.modelPath = const Value.absent(),
+    this.visualStatus = const Value.absent(),
     this.capturedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -919,6 +1094,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     Expression<String>? workspaceId,
     Expression<String>? source,
     Expression<String>? geometryJson,
+    Expression<String>? previewPath,
+    Expression<String>? photosJson,
+    Expression<String>? modelPath,
+    Expression<String>? visualStatus,
     Expression<DateTime>? capturedAt,
     Expression<int>? rowid,
   }) {
@@ -927,6 +1106,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
       if (workspaceId != null) 'workspace_id': workspaceId,
       if (source != null) 'source': source,
       if (geometryJson != null) 'geometry_json': geometryJson,
+      if (previewPath != null) 'preview_path': previewPath,
+      if (photosJson != null) 'photos_json': photosJson,
+      if (modelPath != null) 'model_path': modelPath,
+      if (visualStatus != null) 'visual_status': visualStatus,
       if (capturedAt != null) 'captured_at': capturedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -937,6 +1120,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     Value<String>? workspaceId,
     Value<String>? source,
     Value<String>? geometryJson,
+    Value<String?>? previewPath,
+    Value<String>? photosJson,
+    Value<String?>? modelPath,
+    Value<String>? visualStatus,
     Value<DateTime>? capturedAt,
     Value<int>? rowid,
   }) {
@@ -945,6 +1132,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
       workspaceId: workspaceId ?? this.workspaceId,
       source: source ?? this.source,
       geometryJson: geometryJson ?? this.geometryJson,
+      previewPath: previewPath ?? this.previewPath,
+      photosJson: photosJson ?? this.photosJson,
+      modelPath: modelPath ?? this.modelPath,
+      visualStatus: visualStatus ?? this.visualStatus,
       capturedAt: capturedAt ?? this.capturedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -965,6 +1156,18 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
     if (geometryJson.present) {
       map['geometry_json'] = Variable<String>(geometryJson.value);
     }
+    if (previewPath.present) {
+      map['preview_path'] = Variable<String>(previewPath.value);
+    }
+    if (photosJson.present) {
+      map['photos_json'] = Variable<String>(photosJson.value);
+    }
+    if (modelPath.present) {
+      map['model_path'] = Variable<String>(modelPath.value);
+    }
+    if (visualStatus.present) {
+      map['visual_status'] = Variable<String>(visualStatus.value);
+    }
     if (capturedAt.present) {
       map['captured_at'] = Variable<DateTime>(capturedAt.value);
     }
@@ -981,6 +1184,10 @@ class RoomScansCompanion extends UpdateCompanion<RoomScan> {
           ..write('workspaceId: $workspaceId, ')
           ..write('source: $source, ')
           ..write('geometryJson: $geometryJson, ')
+          ..write('previewPath: $previewPath, ')
+          ..write('photosJson: $photosJson, ')
+          ..write('modelPath: $modelPath, ')
+          ..write('visualStatus: $visualStatus, ')
           ..write('capturedAt: $capturedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1071,6 +1278,39 @@ class $StorageContainersTable extends StorageContainers
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _markerPhotoPathMeta = const VerificationMeta(
+    'markerPhotoPath',
+  );
+  @override
+  late final GeneratedColumn<String> markerPhotoPath = GeneratedColumn<String>(
+    'marker_photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _markerXMeta = const VerificationMeta(
+    'markerX',
+  );
+  @override
+  late final GeneratedColumn<double> markerX = GeneratedColumn<double>(
+    'marker_x',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _markerYMeta = const VerificationMeta(
+    'markerY',
+  );
+  @override
+  late final GeneratedColumn<double> markerY = GeneratedColumn<double>(
+    'marker_y',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _fromSampleScanMeta = const VerificationMeta(
     'fromSampleScan',
   );
@@ -1095,6 +1335,9 @@ class $StorageContainersTable extends StorageContainers
     type,
     layoutLabel,
     geometryJson,
+    markerPhotoPath,
+    markerX,
+    markerY,
     fromSampleScan,
   ];
   @override
@@ -1168,6 +1411,27 @@ class $StorageContainersTable extends StorageContainers
         ),
       );
     }
+    if (data.containsKey('marker_photo_path')) {
+      context.handle(
+        _markerPhotoPathMeta,
+        markerPhotoPath.isAcceptableOrUnknown(
+          data['marker_photo_path']!,
+          _markerPhotoPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('marker_x')) {
+      context.handle(
+        _markerXMeta,
+        markerX.isAcceptableOrUnknown(data['marker_x']!, _markerXMeta),
+      );
+    }
+    if (data.containsKey('marker_y')) {
+      context.handle(
+        _markerYMeta,
+        markerY.isAcceptableOrUnknown(data['marker_y']!, _markerYMeta),
+      );
+    }
     if (data.containsKey('from_sample_scan')) {
       context.handle(
         _fromSampleScanMeta,
@@ -1214,6 +1478,18 @@ class $StorageContainersTable extends StorageContainers
         DriftSqlType.string,
         data['${effectivePrefix}geometry_json'],
       ),
+      markerPhotoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}marker_photo_path'],
+      ),
+      markerX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}marker_x'],
+      ),
+      markerY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}marker_y'],
+      ),
       fromSampleScan: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}from_sample_scan'],
@@ -1236,6 +1512,9 @@ class StorageContainer extends DataClass
   final String type;
   final String? layoutLabel;
   final String? geometryJson;
+  final String? markerPhotoPath;
+  final double? markerX;
+  final double? markerY;
   final bool fromSampleScan;
   const StorageContainer({
     required this.id,
@@ -1245,6 +1524,9 @@ class StorageContainer extends DataClass
     required this.type,
     this.layoutLabel,
     this.geometryJson,
+    this.markerPhotoPath,
+    this.markerX,
+    this.markerY,
     required this.fromSampleScan,
   });
   @override
@@ -1262,6 +1544,15 @@ class StorageContainer extends DataClass
     }
     if (!nullToAbsent || geometryJson != null) {
       map['geometry_json'] = Variable<String>(geometryJson);
+    }
+    if (!nullToAbsent || markerPhotoPath != null) {
+      map['marker_photo_path'] = Variable<String>(markerPhotoPath);
+    }
+    if (!nullToAbsent || markerX != null) {
+      map['marker_x'] = Variable<double>(markerX);
+    }
+    if (!nullToAbsent || markerY != null) {
+      map['marker_y'] = Variable<double>(markerY);
     }
     map['from_sample_scan'] = Variable<bool>(fromSampleScan);
     return map;
@@ -1282,6 +1573,15 @@ class StorageContainer extends DataClass
       geometryJson: geometryJson == null && nullToAbsent
           ? const Value.absent()
           : Value(geometryJson),
+      markerPhotoPath: markerPhotoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(markerPhotoPath),
+      markerX: markerX == null && nullToAbsent
+          ? const Value.absent()
+          : Value(markerX),
+      markerY: markerY == null && nullToAbsent
+          ? const Value.absent()
+          : Value(markerY),
       fromSampleScan: Value(fromSampleScan),
     );
   }
@@ -1299,6 +1599,9 @@ class StorageContainer extends DataClass
       type: serializer.fromJson<String>(json['type']),
       layoutLabel: serializer.fromJson<String?>(json['layoutLabel']),
       geometryJson: serializer.fromJson<String?>(json['geometryJson']),
+      markerPhotoPath: serializer.fromJson<String?>(json['markerPhotoPath']),
+      markerX: serializer.fromJson<double?>(json['markerX']),
+      markerY: serializer.fromJson<double?>(json['markerY']),
       fromSampleScan: serializer.fromJson<bool>(json['fromSampleScan']),
     );
   }
@@ -1313,6 +1616,9 @@ class StorageContainer extends DataClass
       'type': serializer.toJson<String>(type),
       'layoutLabel': serializer.toJson<String?>(layoutLabel),
       'geometryJson': serializer.toJson<String?>(geometryJson),
+      'markerPhotoPath': serializer.toJson<String?>(markerPhotoPath),
+      'markerX': serializer.toJson<double?>(markerX),
+      'markerY': serializer.toJson<double?>(markerY),
       'fromSampleScan': serializer.toJson<bool>(fromSampleScan),
     };
   }
@@ -1325,6 +1631,9 @@ class StorageContainer extends DataClass
     String? type,
     Value<String?> layoutLabel = const Value.absent(),
     Value<String?> geometryJson = const Value.absent(),
+    Value<String?> markerPhotoPath = const Value.absent(),
+    Value<double?> markerX = const Value.absent(),
+    Value<double?> markerY = const Value.absent(),
     bool? fromSampleScan,
   }) => StorageContainer(
     id: id ?? this.id,
@@ -1334,6 +1643,11 @@ class StorageContainer extends DataClass
     type: type ?? this.type,
     layoutLabel: layoutLabel.present ? layoutLabel.value : this.layoutLabel,
     geometryJson: geometryJson.present ? geometryJson.value : this.geometryJson,
+    markerPhotoPath: markerPhotoPath.present
+        ? markerPhotoPath.value
+        : this.markerPhotoPath,
+    markerX: markerX.present ? markerX.value : this.markerX,
+    markerY: markerY.present ? markerY.value : this.markerY,
     fromSampleScan: fromSampleScan ?? this.fromSampleScan,
   );
   StorageContainer copyWithCompanion(StorageContainersCompanion data) {
@@ -1353,6 +1667,11 @@ class StorageContainer extends DataClass
       geometryJson: data.geometryJson.present
           ? data.geometryJson.value
           : this.geometryJson,
+      markerPhotoPath: data.markerPhotoPath.present
+          ? data.markerPhotoPath.value
+          : this.markerPhotoPath,
+      markerX: data.markerX.present ? data.markerX.value : this.markerX,
+      markerY: data.markerY.present ? data.markerY.value : this.markerY,
       fromSampleScan: data.fromSampleScan.present
           ? data.fromSampleScan.value
           : this.fromSampleScan,
@@ -1369,6 +1688,9 @@ class StorageContainer extends DataClass
           ..write('type: $type, ')
           ..write('layoutLabel: $layoutLabel, ')
           ..write('geometryJson: $geometryJson, ')
+          ..write('markerPhotoPath: $markerPhotoPath, ')
+          ..write('markerX: $markerX, ')
+          ..write('markerY: $markerY, ')
           ..write('fromSampleScan: $fromSampleScan')
           ..write(')'))
         .toString();
@@ -1383,6 +1705,9 @@ class StorageContainer extends DataClass
     type,
     layoutLabel,
     geometryJson,
+    markerPhotoPath,
+    markerX,
+    markerY,
     fromSampleScan,
   );
   @override
@@ -1396,6 +1721,9 @@ class StorageContainer extends DataClass
           other.type == this.type &&
           other.layoutLabel == this.layoutLabel &&
           other.geometryJson == this.geometryJson &&
+          other.markerPhotoPath == this.markerPhotoPath &&
+          other.markerX == this.markerX &&
+          other.markerY == this.markerY &&
           other.fromSampleScan == this.fromSampleScan);
 }
 
@@ -1407,6 +1735,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
   final Value<String> type;
   final Value<String?> layoutLabel;
   final Value<String?> geometryJson;
+  final Value<String?> markerPhotoPath;
+  final Value<double?> markerX;
+  final Value<double?> markerY;
   final Value<bool> fromSampleScan;
   final Value<int> rowid;
   const StorageContainersCompanion({
@@ -1417,6 +1748,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     this.type = const Value.absent(),
     this.layoutLabel = const Value.absent(),
     this.geometryJson = const Value.absent(),
+    this.markerPhotoPath = const Value.absent(),
+    this.markerX = const Value.absent(),
+    this.markerY = const Value.absent(),
     this.fromSampleScan = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1428,6 +1762,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     required String type,
     this.layoutLabel = const Value.absent(),
     this.geometryJson = const Value.absent(),
+    this.markerPhotoPath = const Value.absent(),
+    this.markerX = const Value.absent(),
+    this.markerY = const Value.absent(),
     this.fromSampleScan = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1442,6 +1779,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     Expression<String>? type,
     Expression<String>? layoutLabel,
     Expression<String>? geometryJson,
+    Expression<String>? markerPhotoPath,
+    Expression<double>? markerX,
+    Expression<double>? markerY,
     Expression<bool>? fromSampleScan,
     Expression<int>? rowid,
   }) {
@@ -1453,6 +1793,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
       if (type != null) 'type': type,
       if (layoutLabel != null) 'layout_label': layoutLabel,
       if (geometryJson != null) 'geometry_json': geometryJson,
+      if (markerPhotoPath != null) 'marker_photo_path': markerPhotoPath,
+      if (markerX != null) 'marker_x': markerX,
+      if (markerY != null) 'marker_y': markerY,
       if (fromSampleScan != null) 'from_sample_scan': fromSampleScan,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1466,6 +1809,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     Value<String>? type,
     Value<String?>? layoutLabel,
     Value<String?>? geometryJson,
+    Value<String?>? markerPhotoPath,
+    Value<double?>? markerX,
+    Value<double?>? markerY,
     Value<bool>? fromSampleScan,
     Value<int>? rowid,
   }) {
@@ -1477,6 +1823,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
       type: type ?? this.type,
       layoutLabel: layoutLabel ?? this.layoutLabel,
       geometryJson: geometryJson ?? this.geometryJson,
+      markerPhotoPath: markerPhotoPath ?? this.markerPhotoPath,
+      markerX: markerX ?? this.markerX,
+      markerY: markerY ?? this.markerY,
       fromSampleScan: fromSampleScan ?? this.fromSampleScan,
       rowid: rowid ?? this.rowid,
     );
@@ -1506,6 +1855,15 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
     if (geometryJson.present) {
       map['geometry_json'] = Variable<String>(geometryJson.value);
     }
+    if (markerPhotoPath.present) {
+      map['marker_photo_path'] = Variable<String>(markerPhotoPath.value);
+    }
+    if (markerX.present) {
+      map['marker_x'] = Variable<double>(markerX.value);
+    }
+    if (markerY.present) {
+      map['marker_y'] = Variable<double>(markerY.value);
+    }
     if (fromSampleScan.present) {
       map['from_sample_scan'] = Variable<bool>(fromSampleScan.value);
     }
@@ -1525,6 +1883,9 @@ class StorageContainersCompanion extends UpdateCompanion<StorageContainer> {
           ..write('type: $type, ')
           ..write('layoutLabel: $layoutLabel, ')
           ..write('geometryJson: $geometryJson, ')
+          ..write('markerPhotoPath: $markerPhotoPath, ')
+          ..write('markerX: $markerX, ')
+          ..write('markerY: $markerY, ')
           ..write('fromSampleScan: $fromSampleScan, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1970,6 +2331,17 @@ class $InventoryItemsTable extends InventoryItems
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastConfirmedAtMeta = const VerificationMeta(
     'lastConfirmedAt',
   );
@@ -1995,6 +2367,7 @@ class $InventoryItemsTable extends InventoryItems
     homeSectionId,
     currentSectionId,
     sourceCandidateId,
+    photoPath,
     lastConfirmedAt,
   ];
   @override
@@ -2088,6 +2461,12 @@ class $InventoryItemsTable extends InventoryItems
         ),
       );
     }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
     if (data.containsKey('last_confirmed_at')) {
       context.handle(
         _lastConfirmedAtMeta,
@@ -2146,6 +2525,10 @@ class $InventoryItemsTable extends InventoryItems
         DriftSqlType.string,
         data['${effectivePrefix}source_candidate_id'],
       ),
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
       lastConfirmedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_confirmed_at'],
@@ -2170,6 +2553,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
   final String homeSectionId;
   final String currentSectionId;
   final String? sourceCandidateId;
+  final String? photoPath;
   final DateTime lastConfirmedAt;
   const InventoryItem({
     required this.id,
@@ -2182,6 +2566,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     required this.homeSectionId,
     required this.currentSectionId,
     this.sourceCandidateId,
+    this.photoPath,
     required this.lastConfirmedAt,
   });
   @override
@@ -2198,6 +2583,9 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     map['current_section_id'] = Variable<String>(currentSectionId);
     if (!nullToAbsent || sourceCandidateId != null) {
       map['source_candidate_id'] = Variable<String>(sourceCandidateId);
+    }
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
     }
     map['last_confirmed_at'] = Variable<DateTime>(lastConfirmedAt);
     return map;
@@ -2217,6 +2605,9 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       sourceCandidateId: sourceCandidateId == null && nullToAbsent
           ? const Value.absent()
           : Value(sourceCandidateId),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
       lastConfirmedAt: Value(lastConfirmedAt),
     );
   }
@@ -2239,6 +2630,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       sourceCandidateId: serializer.fromJson<String?>(
         json['sourceCandidateId'],
       ),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
       lastConfirmedAt: serializer.fromJson<DateTime>(json['lastConfirmedAt']),
     );
   }
@@ -2256,6 +2648,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       'homeSectionId': serializer.toJson<String>(homeSectionId),
       'currentSectionId': serializer.toJson<String>(currentSectionId),
       'sourceCandidateId': serializer.toJson<String?>(sourceCandidateId),
+      'photoPath': serializer.toJson<String?>(photoPath),
       'lastConfirmedAt': serializer.toJson<DateTime>(lastConfirmedAt),
     };
   }
@@ -2271,6 +2664,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     String? homeSectionId,
     String? currentSectionId,
     Value<String?> sourceCandidateId = const Value.absent(),
+    Value<String?> photoPath = const Value.absent(),
     DateTime? lastConfirmedAt,
   }) => InventoryItem(
     id: id ?? this.id,
@@ -2285,6 +2679,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     sourceCandidateId: sourceCandidateId.present
         ? sourceCandidateId.value
         : this.sourceCandidateId,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
     lastConfirmedAt: lastConfirmedAt ?? this.lastConfirmedAt,
   );
   InventoryItem copyWithCompanion(InventoryItemsCompanion data) {
@@ -2309,6 +2704,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       sourceCandidateId: data.sourceCandidateId.present
           ? data.sourceCandidateId.value
           : this.sourceCandidateId,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       lastConfirmedAt: data.lastConfirmedAt.present
           ? data.lastConfirmedAt.value
           : this.lastConfirmedAt,
@@ -2328,6 +2724,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
           ..write('homeSectionId: $homeSectionId, ')
           ..write('currentSectionId: $currentSectionId, ')
           ..write('sourceCandidateId: $sourceCandidateId, ')
+          ..write('photoPath: $photoPath, ')
           ..write('lastConfirmedAt: $lastConfirmedAt')
           ..write(')'))
         .toString();
@@ -2345,6 +2742,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     homeSectionId,
     currentSectionId,
     sourceCandidateId,
+    photoPath,
     lastConfirmedAt,
   );
   @override
@@ -2361,6 +2759,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
           other.homeSectionId == this.homeSectionId &&
           other.currentSectionId == this.currentSectionId &&
           other.sourceCandidateId == this.sourceCandidateId &&
+          other.photoPath == this.photoPath &&
           other.lastConfirmedAt == this.lastConfirmedAt);
 }
 
@@ -2375,6 +2774,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
   final Value<String> homeSectionId;
   final Value<String> currentSectionId;
   final Value<String?> sourceCandidateId;
+  final Value<String?> photoPath;
   final Value<DateTime> lastConfirmedAt;
   final Value<int> rowid;
   const InventoryItemsCompanion({
@@ -2388,6 +2788,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     this.homeSectionId = const Value.absent(),
     this.currentSectionId = const Value.absent(),
     this.sourceCandidateId = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.lastConfirmedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2402,6 +2803,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     required String homeSectionId,
     required String currentSectionId,
     this.sourceCandidateId = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.lastConfirmedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2420,6 +2822,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     Expression<String>? homeSectionId,
     Expression<String>? currentSectionId,
     Expression<String>? sourceCandidateId,
+    Expression<String>? photoPath,
     Expression<DateTime>? lastConfirmedAt,
     Expression<int>? rowid,
   }) {
@@ -2434,6 +2837,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
       if (homeSectionId != null) 'home_section_id': homeSectionId,
       if (currentSectionId != null) 'current_section_id': currentSectionId,
       if (sourceCandidateId != null) 'source_candidate_id': sourceCandidateId,
+      if (photoPath != null) 'photo_path': photoPath,
       if (lastConfirmedAt != null) 'last_confirmed_at': lastConfirmedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2450,6 +2854,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     Value<String>? homeSectionId,
     Value<String>? currentSectionId,
     Value<String?>? sourceCandidateId,
+    Value<String?>? photoPath,
     Value<DateTime>? lastConfirmedAt,
     Value<int>? rowid,
   }) {
@@ -2464,6 +2869,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
       homeSectionId: homeSectionId ?? this.homeSectionId,
       currentSectionId: currentSectionId ?? this.currentSectionId,
       sourceCandidateId: sourceCandidateId ?? this.sourceCandidateId,
+      photoPath: photoPath ?? this.photoPath,
       lastConfirmedAt: lastConfirmedAt ?? this.lastConfirmedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -2502,6 +2908,9 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     if (sourceCandidateId.present) {
       map['source_candidate_id'] = Variable<String>(sourceCandidateId.value);
     }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (lastConfirmedAt.present) {
       map['last_confirmed_at'] = Variable<DateTime>(lastConfirmedAt.value);
     }
@@ -2524,6 +2933,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
           ..write('homeSectionId: $homeSectionId, ')
           ..write('currentSectionId: $currentSectionId, ')
           ..write('sourceCandidateId: $sourceCandidateId, ')
+          ..write('photoPath: $photoPath, ')
           ..write('lastConfirmedAt: $lastConfirmedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3146,6 +3556,17 @@ class $ScanCandidatesTable extends ScanCandidates
     requiredDuringInsert: false,
     defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3169,6 +3590,7 @@ class $ScanCandidatesTable extends ScanCandidates
     confidence,
     state,
     source,
+    photoPath,
     createdAt,
   ];
   @override
@@ -3240,6 +3662,12 @@ class $ScanCandidatesTable extends ScanCandidates
         source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
       );
     }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3291,6 +3719,10 @@ class $ScanCandidatesTable extends ScanCandidates
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -3314,6 +3746,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
   final double confidence;
   final String state;
   final String source;
+  final String? photoPath;
   final DateTime createdAt;
   const ScanCandidate({
     required this.id,
@@ -3325,6 +3758,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
     required this.confidence,
     required this.state,
     required this.source,
+    this.photoPath,
     required this.createdAt,
   });
   @override
@@ -3339,6 +3773,9 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
     map['confidence'] = Variable<double>(confidence);
     map['state'] = Variable<String>(state);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -3354,6 +3791,9 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
       confidence: Value(confidence),
       state: Value(state),
       source: Value(source),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
       createdAt: Value(createdAt),
     );
   }
@@ -3373,6 +3813,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
       confidence: serializer.fromJson<double>(json['confidence']),
       state: serializer.fromJson<String>(json['state']),
       source: serializer.fromJson<String>(json['source']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -3389,6 +3830,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
       'confidence': serializer.toJson<double>(confidence),
       'state': serializer.toJson<String>(state),
       'source': serializer.toJson<String>(source),
+      'photoPath': serializer.toJson<String?>(photoPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -3403,6 +3845,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
     double? confidence,
     String? state,
     String? source,
+    Value<String?> photoPath = const Value.absent(),
     DateTime? createdAt,
   }) => ScanCandidate(
     id: id ?? this.id,
@@ -3414,6 +3857,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
     confidence: confidence ?? this.confidence,
     state: state ?? this.state,
     source: source ?? this.source,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
     createdAt: createdAt ?? this.createdAt,
   );
   ScanCandidate copyWithCompanion(ScanCandidatesCompanion data) {
@@ -3431,6 +3875,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
           : this.confidence,
       state: data.state.present ? data.state.value : this.state,
       source: data.source.present ? data.source.value : this.source,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -3447,6 +3892,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
           ..write('confidence: $confidence, ')
           ..write('state: $state, ')
           ..write('source: $source, ')
+          ..write('photoPath: $photoPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3463,6 +3909,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
     confidence,
     state,
     source,
+    photoPath,
     createdAt,
   );
   @override
@@ -3478,6 +3925,7 @@ class ScanCandidate extends DataClass implements Insertable<ScanCandidate> {
           other.confidence == this.confidence &&
           other.state == this.state &&
           other.source == this.source &&
+          other.photoPath == this.photoPath &&
           other.createdAt == this.createdAt);
 }
 
@@ -3491,6 +3939,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
   final Value<double> confidence;
   final Value<String> state;
   final Value<String> source;
+  final Value<String?> photoPath;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const ScanCandidatesCompanion({
@@ -3503,6 +3952,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
     this.confidence = const Value.absent(),
     this.state = const Value.absent(),
     this.source = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3516,6 +3966,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
     this.confidence = const Value.absent(),
     this.state = const Value.absent(),
     this.source = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3531,6 +3982,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
     Expression<double>? confidence,
     Expression<String>? state,
     Expression<String>? source,
+    Expression<String>? photoPath,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -3544,6 +3996,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
       if (confidence != null) 'confidence': confidence,
       if (state != null) 'state': state,
       if (source != null) 'source': source,
+      if (photoPath != null) 'photo_path': photoPath,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3559,6 +4012,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
     Value<double>? confidence,
     Value<String>? state,
     Value<String>? source,
+    Value<String?>? photoPath,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -3572,6 +4026,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
       confidence: confidence ?? this.confidence,
       state: state ?? this.state,
       source: source ?? this.source,
+      photoPath: photoPath ?? this.photoPath,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -3607,6 +4062,9 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -3628,6 +4086,7 @@ class ScanCandidatesCompanion extends UpdateCompanion<ScanCandidate> {
           ..write('confidence: $confidence, ')
           ..write('state: $state, ')
           ..write('source: $source, ')
+          ..write('photoPath: $photoPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4753,6 +5212,10 @@ typedef $$RoomScansTableCreateCompanionBuilder =
       required String workspaceId,
       required String source,
       Value<String> geometryJson,
+      Value<String?> previewPath,
+      Value<String> photosJson,
+      Value<String?> modelPath,
+      Value<String> visualStatus,
       Value<DateTime> capturedAt,
       Value<int> rowid,
     });
@@ -4762,6 +5225,10 @@ typedef $$RoomScansTableUpdateCompanionBuilder =
       Value<String> workspaceId,
       Value<String> source,
       Value<String> geometryJson,
+      Value<String?> previewPath,
+      Value<String> photosJson,
+      Value<String?> modelPath,
+      Value<String> visualStatus,
       Value<DateTime> capturedAt,
       Value<int> rowid,
     });
@@ -4830,6 +5297,26 @@ class $$RoomScansTableFilterComposer
 
   ColumnFilters<String> get geometryJson => $composableBuilder(
     column: $table.geometryJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previewPath => $composableBuilder(
+    column: $table.previewPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photosJson => $composableBuilder(
+    column: $table.photosJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelPath => $composableBuilder(
+    column: $table.modelPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visualStatus => $composableBuilder(
+    column: $table.visualStatus,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4911,6 +5398,26 @@ class $$RoomScansTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get previewPath => $composableBuilder(
+    column: $table.previewPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get photosJson => $composableBuilder(
+    column: $table.photosJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelPath => $composableBuilder(
+    column: $table.modelPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visualStatus => $composableBuilder(
+    column: $table.visualStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get capturedAt => $composableBuilder(
     column: $table.capturedAt,
     builder: (column) => ColumnOrderings(column),
@@ -4957,6 +5464,24 @@ class $$RoomScansTableAnnotationComposer
 
   GeneratedColumn<String> get geometryJson => $composableBuilder(
     column: $table.geometryJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previewPath => $composableBuilder(
+    column: $table.previewPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get photosJson => $composableBuilder(
+    column: $table.photosJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelPath =>
+      $composableBuilder(column: $table.modelPath, builder: (column) => column);
+
+  GeneratedColumn<String> get visualStatus => $composableBuilder(
+    column: $table.visualStatus,
     builder: (column) => column,
   );
 
@@ -5047,6 +5572,10 @@ class $$RoomScansTableTableManager
                 Value<String> workspaceId = const Value.absent(),
                 Value<String> source = const Value.absent(),
                 Value<String> geometryJson = const Value.absent(),
+                Value<String?> previewPath = const Value.absent(),
+                Value<String> photosJson = const Value.absent(),
+                Value<String?> modelPath = const Value.absent(),
+                Value<String> visualStatus = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoomScansCompanion(
@@ -5054,6 +5583,10 @@ class $$RoomScansTableTableManager
                 workspaceId: workspaceId,
                 source: source,
                 geometryJson: geometryJson,
+                previewPath: previewPath,
+                photosJson: photosJson,
+                modelPath: modelPath,
+                visualStatus: visualStatus,
                 capturedAt: capturedAt,
                 rowid: rowid,
               ),
@@ -5063,6 +5596,10 @@ class $$RoomScansTableTableManager
                 required String workspaceId,
                 required String source,
                 Value<String> geometryJson = const Value.absent(),
+                Value<String?> previewPath = const Value.absent(),
+                Value<String> photosJson = const Value.absent(),
+                Value<String?> modelPath = const Value.absent(),
+                Value<String> visualStatus = const Value.absent(),
                 Value<DateTime> capturedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoomScansCompanion.insert(
@@ -5070,6 +5607,10 @@ class $$RoomScansTableTableManager
                 workspaceId: workspaceId,
                 source: source,
                 geometryJson: geometryJson,
+                previewPath: previewPath,
+                photosJson: photosJson,
+                modelPath: modelPath,
+                visualStatus: visualStatus,
                 capturedAt: capturedAt,
                 rowid: rowid,
               ),
@@ -5174,6 +5715,9 @@ typedef $$StorageContainersTableCreateCompanionBuilder =
       required String type,
       Value<String?> layoutLabel,
       Value<String?> geometryJson,
+      Value<String?> markerPhotoPath,
+      Value<double?> markerX,
+      Value<double?> markerY,
       Value<bool> fromSampleScan,
       Value<int> rowid,
     });
@@ -5186,6 +5730,9 @@ typedef $$StorageContainersTableUpdateCompanionBuilder =
       Value<String> type,
       Value<String?> layoutLabel,
       Value<String?> geometryJson,
+      Value<String?> markerPhotoPath,
+      Value<double?> markerX,
+      Value<double?> markerY,
       Value<bool> fromSampleScan,
       Value<int> rowid,
     });
@@ -5289,6 +5836,21 @@ class $$StorageContainersTableFilterComposer
 
   ColumnFilters<String> get geometryJson => $composableBuilder(
     column: $table.geometryJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get markerPhotoPath => $composableBuilder(
+    column: $table.markerPhotoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get markerX => $composableBuilder(
+    column: $table.markerX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get markerY => $composableBuilder(
+    column: $table.markerY,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5403,6 +5965,21 @@ class $$StorageContainersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get markerPhotoPath => $composableBuilder(
+    column: $table.markerPhotoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get markerX => $composableBuilder(
+    column: $table.markerX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get markerY => $composableBuilder(
+    column: $table.markerY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get fromSampleScan => $composableBuilder(
     column: $table.fromSampleScan,
     builder: (column) => ColumnOrderings(column),
@@ -5482,6 +6059,17 @@ class $$StorageContainersTableAnnotationComposer
     column: $table.geometryJson,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get markerPhotoPath => $composableBuilder(
+    column: $table.markerPhotoPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get markerX =>
+      $composableBuilder(column: $table.markerX, builder: (column) => column);
+
+  GeneratedColumn<double> get markerY =>
+      $composableBuilder(column: $table.markerY, builder: (column) => column);
 
   GeneratedColumn<bool> get fromSampleScan => $composableBuilder(
     column: $table.fromSampleScan,
@@ -5604,6 +6192,9 @@ class $$StorageContainersTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<String?> layoutLabel = const Value.absent(),
                 Value<String?> geometryJson = const Value.absent(),
+                Value<String?> markerPhotoPath = const Value.absent(),
+                Value<double?> markerX = const Value.absent(),
+                Value<double?> markerY = const Value.absent(),
                 Value<bool> fromSampleScan = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StorageContainersCompanion(
@@ -5614,6 +6205,9 @@ class $$StorageContainersTableTableManager
                 type: type,
                 layoutLabel: layoutLabel,
                 geometryJson: geometryJson,
+                markerPhotoPath: markerPhotoPath,
+                markerX: markerX,
+                markerY: markerY,
                 fromSampleScan: fromSampleScan,
                 rowid: rowid,
               ),
@@ -5626,6 +6220,9 @@ class $$StorageContainersTableTableManager
                 required String type,
                 Value<String?> layoutLabel = const Value.absent(),
                 Value<String?> geometryJson = const Value.absent(),
+                Value<String?> markerPhotoPath = const Value.absent(),
+                Value<double?> markerX = const Value.absent(),
+                Value<double?> markerY = const Value.absent(),
                 Value<bool> fromSampleScan = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StorageContainersCompanion.insert(
@@ -5636,6 +6233,9 @@ class $$StorageContainersTableTableManager
                 type: type,
                 layoutLabel: layoutLabel,
                 geometryJson: geometryJson,
+                markerPhotoPath: markerPhotoPath,
+                markerX: markerX,
+                markerY: markerY,
                 fromSampleScan: fromSampleScan,
                 rowid: rowid,
               ),
@@ -6170,6 +6770,7 @@ typedef $$InventoryItemsTableCreateCompanionBuilder =
       required String homeSectionId,
       required String currentSectionId,
       Value<String?> sourceCandidateId,
+      Value<String?> photoPath,
       Value<DateTime> lastConfirmedAt,
       Value<int> rowid,
     });
@@ -6185,6 +6786,7 @@ typedef $$InventoryItemsTableUpdateCompanionBuilder =
       Value<String> homeSectionId,
       Value<String> currentSectionId,
       Value<String?> sourceCandidateId,
+      Value<String?> photoPath,
       Value<DateTime> lastConfirmedAt,
       Value<int> rowid,
     });
@@ -6332,6 +6934,11 @@ class $$InventoryItemsTableFilterComposer
 
   ColumnFilters<String> get sourceCandidateId => $composableBuilder(
     column: $table.sourceCandidateId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6504,6 +7111,11 @@ class $$InventoryItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get lastConfirmedAt => $composableBuilder(
     column: $table.lastConfirmedAt,
     builder: (column) => ColumnOrderings(column),
@@ -6612,6 +7224,9 @@ class $$InventoryItemsTableAnnotationComposer
     column: $table.sourceCandidateId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
 
   GeneratedColumn<DateTime> get lastConfirmedAt => $composableBuilder(
     column: $table.lastConfirmedAt,
@@ -6784,6 +7399,7 @@ class $$InventoryItemsTableTableManager
                 Value<String> homeSectionId = const Value.absent(),
                 Value<String> currentSectionId = const Value.absent(),
                 Value<String?> sourceCandidateId = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> lastConfirmedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => InventoryItemsCompanion(
@@ -6797,6 +7413,7 @@ class $$InventoryItemsTableTableManager
                 homeSectionId: homeSectionId,
                 currentSectionId: currentSectionId,
                 sourceCandidateId: sourceCandidateId,
+                photoPath: photoPath,
                 lastConfirmedAt: lastConfirmedAt,
                 rowid: rowid,
               ),
@@ -6812,6 +7429,7 @@ class $$InventoryItemsTableTableManager
                 required String homeSectionId,
                 required String currentSectionId,
                 Value<String?> sourceCandidateId = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> lastConfirmedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => InventoryItemsCompanion.insert(
@@ -6825,6 +7443,7 @@ class $$InventoryItemsTableTableManager
                 homeSectionId: homeSectionId,
                 currentSectionId: currentSectionId,
                 sourceCandidateId: sourceCandidateId,
+                photoPath: photoPath,
                 lastConfirmedAt: lastConfirmedAt,
                 rowid: rowid,
               ),
@@ -7385,6 +8004,7 @@ typedef $$ScanCandidatesTableCreateCompanionBuilder =
       Value<double> confidence,
       Value<String> state,
       Value<String> source,
+      Value<String?> photoPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -7399,6 +8019,7 @@ typedef $$ScanCandidatesTableUpdateCompanionBuilder =
       Value<double> confidence,
       Value<String> state,
       Value<String> source,
+      Value<String?> photoPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -7476,6 +8097,11 @@ class $$ScanCandidatesTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7557,6 +8183,11 @@ class $$ScanCandidatesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7622,6 +8253,9 @@ class $$ScanCandidatesTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7689,6 +8323,7 @@ class $$ScanCandidatesTableTableManager
                 Value<double> confidence = const Value.absent(),
                 Value<String> state = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ScanCandidatesCompanion(
@@ -7701,6 +8336,7 @@ class $$ScanCandidatesTableTableManager
                 confidence: confidence,
                 state: state,
                 source: source,
+                photoPath: photoPath,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -7715,6 +8351,7 @@ class $$ScanCandidatesTableTableManager
                 Value<double> confidence = const Value.absent(),
                 Value<String> state = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ScanCandidatesCompanion.insert(
@@ -7727,6 +8364,7 @@ class $$ScanCandidatesTableTableManager
                 confidence: confidence,
                 state: state,
                 source: source,
+                photoPath: photoPath,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

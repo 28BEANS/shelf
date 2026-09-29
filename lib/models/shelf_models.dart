@@ -47,6 +47,10 @@ class ShelfContainer {
     this.workspaceId = '',
     this.layoutLabel,
     this.geometryJson,
+    this.roomScanId,
+    this.markerPhotoPath,
+    this.markerX,
+    this.markerY,
   });
   final String id;
   final String name;
@@ -55,17 +59,51 @@ class ShelfContainer {
   final String workspaceId;
   final String? layoutLabel;
   final String? geometryJson;
+  final String? roomScanId;
+  final String? markerPhotoPath;
+  final double? markerX;
+  final double? markerY;
 
-  ShelfContainer copyWith({String? name, String? type, String? layoutLabel}) =>
-      ShelfContainer(
-        id: id,
-        name: name ?? this.name,
-        type: type ?? this.type,
-        fromSampleScan: fromSampleScan,
-        workspaceId: workspaceId,
-        layoutLabel: layoutLabel ?? this.layoutLabel,
-        geometryJson: geometryJson,
-      );
+  ShelfContainer copyWith({
+    String? name,
+    String? type,
+    String? layoutLabel,
+    String? markerPhotoPath,
+    double? markerX,
+    double? markerY,
+    bool clearMarker = false,
+  }) => ShelfContainer(
+    id: id,
+    name: name ?? this.name,
+    type: type ?? this.type,
+    fromSampleScan: fromSampleScan,
+    workspaceId: workspaceId,
+    layoutLabel: layoutLabel ?? this.layoutLabel,
+    geometryJson: geometryJson,
+    roomScanId: roomScanId,
+    markerPhotoPath: clearMarker
+        ? null
+        : markerPhotoPath ?? this.markerPhotoPath,
+    markerX: clearMarker ? null : markerX ?? this.markerX,
+    markerY: clearMarker ? null : markerY ?? this.markerY,
+  );
+}
+
+class ShelfVisualScan {
+  const ShelfVisualScan({
+    required this.id,
+    required this.backend,
+    required this.photoPaths,
+    this.previewPath,
+    this.modelPath,
+    required this.visualStatus,
+  });
+  final String id;
+  final String backend;
+  final List<String> photoPaths;
+  final String? previewPath;
+  final String? modelPath;
+  final String visualStatus;
 }
 
 class ShelfSection {
@@ -98,6 +136,7 @@ class ShelfItem {
     this.identifier = '',
     this.status = ItemStatus.available,
     required this.lastConfirmedAt,
+    this.photoPath,
   });
   final String id;
   final String name;
@@ -108,6 +147,7 @@ class ShelfItem {
   final String identifier;
   final ItemStatus status;
   final DateTime lastConfirmedAt;
+  final String? photoPath;
 }
 
 class ScanCandidate {
@@ -122,6 +162,7 @@ class ScanCandidate {
     this.sectionId = '',
     this.state = 'pending',
     this.source = 'sample',
+    this.photoPath,
   });
   final String id;
   final String name;
@@ -133,4 +174,5 @@ class ScanCandidate {
   final String sectionId;
   final String state;
   final String source;
+  final String? photoPath;
 }
