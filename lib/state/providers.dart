@@ -4,6 +4,7 @@ import '../data/app_database.dart' hide ScanCandidate;
 import '../data/inventory_repository.dart';
 import '../models/shelf_models.dart';
 import '../services/scan_service.dart';
+import '../widgets/shelf_stored_image.dart';
 import 'setup_state.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -68,6 +69,17 @@ class SetupNotifier extends Notifier<SetupState> {
     await refresh(containerId: accepted.isEmpty ? null : accepted.first.id);
   }
 
+  Future<void> removeRoomPhoto(String scanId, String photoPath) async {
+    await repository.removeRoomPhoto(scanId, photoPath);
+    await refresh();
+    try {
+      await discardShelfMedia(photoPath);
+    } catch (_) {
+      // The database no longer references this view. An orphaned file can be
+      // cleaned up later without making the completed removal look like a failure.
+    }
+  }
+
   Future<void> chooseLayout(String label, int sectionCount) async {
     final container = state.container;
     if (container == null) return;
@@ -101,6 +113,7 @@ class SetupNotifier extends Notifier<SetupState> {
     String identifier = '',
     double confidence = 1,
     String source = 'manual',
+    String? photoPath,
   }) async {
     await repository.addCandidate(
       sectionId: sectionId,
@@ -110,6 +123,7 @@ class SetupNotifier extends Notifier<SetupState> {
       identifier: identifier,
       confidence: confidence,
       source: source,
+      photoPath: photoPath,
     );
     await refresh();
   }
@@ -121,6 +135,7 @@ class SetupNotifier extends Notifier<SetupState> {
     String? model,
     String? identifier,
     String? state,
+    String? photoPath,
   }) async {
     await repository.updateCandidate(
       id,
@@ -129,6 +144,7 @@ class SetupNotifier extends Notifier<SetupState> {
       model: model,
       identifier: identifier,
       state: state,
+      photoPath: photoPath,
     );
     await refresh();
   }

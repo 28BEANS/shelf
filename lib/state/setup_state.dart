@@ -14,6 +14,7 @@ class SetupState {
     this.loans = const [],
     this.moves = const [],
     this.layoutLabel,
+    this.visualScan,
   });
 
   final bool loading;
@@ -28,6 +29,7 @@ class SetupState {
   final List<ShelfLoan> loans;
   final List<ShelfMove> moves;
   final String? layoutLabel;
+  final ShelfVisualScan? visualScan;
 
   bool get isComplete =>
       workspace != null && container != null && sections.isNotEmpty;
@@ -69,6 +71,7 @@ class SetupState {
     List<ShelfLoan>? loans,
     List<ShelfMove>? moves,
     String? layoutLabel,
+    ShelfVisualScan? visualScan,
   }) => SetupState(
     loading: loading ?? this.loading,
     error: error,
@@ -82,5 +85,6 @@ class SetupState {
     loans: loans ?? this.loans,
     moves: moves ?? this.moves,
     layoutLabel: layoutLabel ?? this.layoutLabel,
+    visualScan: visualScan ?? this.visualScan,
   );
 }

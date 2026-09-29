@@ -27,6 +27,19 @@ class InventoryRepository {
     final candidateRows = await db.select(db.scanCandidates).get();
     final loanRows = await db.select(db.checkoutRecords).get();
     final moveRows = await db.select(db.movementRecords).get();
+    final latestScanId = await db
+        .customSelect(
+          'SELECT id FROM room_scans WHERE workspace_id = ? ORDER BY rowid DESC LIMIT 1',
+          variables: [Variable.withString(workspace.id)],
+          readsFrom: {db.roomScans},
+        )
+        .getSingleOrNull();
+    final scanRow = latestScanId == null
+        ? null
+        : await (db.select(
+                db.roomScans,
+              )..where((row) => row.id.equals(latestScanId.read<String>('id'))))
+              .getSingleOrNull();
     final containers = [
       for (final row in containerRows)
         ShelfContainer(
@@ -36,6 +49,10 @@ class InventoryRepository {
           type: row.type,
           layoutLabel: row.layoutLabel,
           geometryJson: row.geometryJson,
+          roomScanId: row.roomScanId,
+          markerPhotoPath: row.markerPhotoPath,
+          markerX: row.markerX,
+          markerY: row.markerY,
           fromSampleScan: row.fromSampleScan,
         ),
     ];
@@ -83,6 +100,7 @@ class InventoryRepository {
             homeSectionId: row.homeSectionId,
             currentSectionId: row.currentSectionId,
             lastConfirmedAt: row.lastConfirmedAt,
+            photoPath: row.photoPath,
           ),
       ],
       candidates: [
@@ -97,6 +115,7 @@ class InventoryRepository {
             confidence: row.confidence,
             state: row.state,
             source: row.source,
+            photoPath: row.photoPath,
             accepted: row.state == 'accepted' || row.state == 'confirmed',
           ),
       ],
@@ -123,6 +142,17 @@ class InventoryRepository {
           ),
       ],
       layoutLabel: container?.layoutLabel,
+      visualScan: scanRow == null
+          ? null
+          : ShelfVisualScan(
+              id: scanRow.id,
+              backend: scanRow.source,
+              photoPaths: (jsonDecode(scanRow.photosJson) as List)
+                  .cast<String>(),
+              previewPath: scanRow.previewPath,
+              modelPath: scanRow.modelPath,
+              visualStatus: scanRow.visualStatus,
+            ),
     );
   }
 
@@ -155,6 +185,10 @@ class InventoryRepository {
             type: container.type,
             layoutLabel: Value(container.layoutLabel),
             geometryJson: Value(container.geometryJson),
+            roomScanId: Value(container.roomScanId),
+            markerPhotoPath: Value(container.markerPhotoPath),
+            markerX: Value(container.markerX),
+            markerY: Value(container.markerY),
             fromSampleScan: Value(container.fromSampleScan),
           ),
         );
@@ -165,7 +199,7 @@ class InventoryRepository {
     ShelfRoom room,
     List<ShelfContainer> accepted,
   ) => db.transaction(() async {
-    final scanId = nextId('scan');
+    final scanId = room.scanId.isEmpty ? nextId('scan') : room.scanId;
     await db
         .into(db.roomScans)
         .insert(
@@ -174,6 +208,10 @@ class InventoryRepository {
             workspaceId: workspaceId,
             source: room.backend,
             geometryJson: Value(jsonEncode(room.toJson())),
+            previewPath: Value(room.previewPath),
+            photosJson: Value(jsonEncode(room.photoPaths)),
+            modelPath: Value(room.modelPath),
+            visualStatus: Value(room.visualStatus),
           ),
         );
     final ids = <String>[];
@@ -181,19 +219,61 @@ class InventoryRepository {
       ids.add(container.id);
       await db
           .into(db.storageContainers)
-          .insert(
+          .insertOnConflictUpdate(
             StorageContainersCompanion.insert(
               id: container.id,
               workspaceId: workspaceId,
               roomScanId: Value(scanId),
               name: container.name.trim(),
               type: container.type,
+              layoutLabel: Value(container.layoutLabel),
               geometryJson: Value(container.geometryJson),
+              fromSampleScan: Value(container.fromSampleScan),
+              markerPhotoPath: Value(container.markerPhotoPath),
+              markerX: Value(container.markerX),
+              markerY: Value(container.markerY),
             ),
           );
     }
     return ids;
   });
+
+  Future<void> removeRoomPhoto(String scanId, String photoPath) =>
+      db.transaction(() async {
+        final scan = await (db.select(
+          db.roomScans,
+        )..where((row) => row.id.equals(scanId))).getSingleOrNull();
+        if (scan == null) throw StateError('This room scan no longer exists.');
+        final photos = (jsonDecode(scan.photosJson) as List).cast<String>();
+        if (!photos.contains(photoPath)) {
+          throw StateError('This room view has already been removed.');
+        }
+        final pinned = await (db.select(
+          db.storageContainers,
+        )..where((row) => row.markerPhotoPath.equals(photoPath))).get();
+        if (pinned.isNotEmpty) {
+          throw StateError('Move its storage pins to another view first.');
+        }
+
+        final remaining = photos.where((path) => path != photoPath).toList();
+        final preview = remaining.contains(scan.previewPath)
+            ? scan.previewPath
+            : remaining.firstOrNull;
+        final geometry = jsonDecode(scan.geometryJson) as Map<String, dynamic>;
+        geometry['photoPaths'] = remaining;
+        geometry['previewPath'] = preview;
+        geometry['visualStatus'] = remaining.isEmpty ? 'unavailable' : 'photo';
+        await (db.update(
+          db.roomScans,
+        )..where((row) => row.id.equals(scanId))).write(
+          RoomScansCompanion(
+            photosJson: Value(jsonEncode(remaining)),
+            previewPath: Value(preview),
+            visualStatus: Value(remaining.isEmpty ? 'unavailable' : 'photo'),
+            geometryJson: Value(jsonEncode(geometry)),
+          ),
+        );
+      });
 
   Future<void> saveLayout(
     ShelfContainer container,
@@ -308,9 +388,10 @@ class InventoryRepository {
     String identifier = '',
     double confidence = 1,
     String source = 'manual',
+    String? photoPath,
   }) async {
     if (name.trim().isEmpty) throw StateError('Enter an item name.');
-    if (source != 'manual') {
+    if (source != 'manual' && photoPath == null) {
       final existing = await (db.select(
         db.scanCandidates,
       )..where((row) => row.sectionId.equals(sectionId))).get();
@@ -338,6 +419,7 @@ class InventoryRepository {
             identifier: Value(identifier.trim()),
             confidence: Value(confidence),
             source: Value(source),
+            photoPath: Value(photoPath),
             state: Value(source == 'manual' ? 'accepted' : 'pending'),
           ),
         );
@@ -350,6 +432,7 @@ class InventoryRepository {
     String? model,
     String? identifier,
     String? state,
+    String? photoPath,
   }) => (db.update(db.scanCandidates)..where((row) => row.id.equals(id))).write(
     ScanCandidatesCompanion(
       name: name == null ? const Value.absent() : Value(name.trim()),
@@ -361,6 +444,7 @@ class InventoryRepository {
           ? const Value.absent()
           : Value(identifier.trim()),
       state: state == null ? const Value.absent() : Value(state),
+      photoPath: photoPath == null ? const Value.absent() : Value(photoPath),
     ),
   );
 
@@ -394,6 +478,7 @@ class InventoryRepository {
                     homeSectionId: sectionId,
                     currentSectionId: sectionId,
                     sourceCandidateId: Value(candidate.id),
+                    photoPath: Value(candidate.photoPath),
                     lastConfirmedAt: Value(DateTime.now()),
                   ),
                 );
