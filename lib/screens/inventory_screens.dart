@@ -8,6 +8,7 @@ import '../theme.dart';
 import '../widgets/hard_shadow_card.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_brand.dart';
+import '../widgets/shelf_stored_image.dart';
 import 'setup_flow_screen.dart';
 
 class ContainerOverviewScreen extends ConsumerWidget {
@@ -976,6 +977,19 @@ class _ItemVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (item.photoPath != null) {
+      return Container(
+        width: double.infinity,
+        height: height,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.secondary,
+          border: Border.all(width: 2),
+          borderRadius: BorderRadius.circular(7),
+        ),
+        child: ShelfStoredImage(path: item.photoPath),
+      );
+    }
     final isCamera =
         '${item.name} ${item.category}'.toLowerCase().contains('camera') ||
         item.name.toLowerCase().contains('lens');

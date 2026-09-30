@@ -171,7 +171,8 @@ class _TestScanService implements ScanService {
   @override
   Future<void> cancel() async {}
   @override
-  Future<List<ItemCaptureSuggestion>> scanItems() async => [];
+  Future<ItemCaptureResult> scanItems() async =>
+      const ItemCaptureResult(photoPath: '', suggestions: []);
   @override
   Future<ShelfRoom> scanRoom() async {
     const transform = <double>[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
