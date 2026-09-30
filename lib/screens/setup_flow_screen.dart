@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import '../theme.dart';
 import '../widgets/hard_shadow_card.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_brand.dart';
+import '../widgets/shelf_room_photo.dart';
+import '../widgets/shelf_stored_image.dart';
 
 enum _SetupStep { roomScan, detected, layout, sections }
 
@@ -20,10 +23,12 @@ class SetupFlowScreen extends ConsumerStatefulWidget {
     this.manual = false,
     this.editLayout = false,
     this.newSpace = false,
+    this.rescanExisting = false,
   });
   final bool manual;
   final bool editLayout;
   final bool newSpace;
+  final bool rescanExisting;
 
   @override
   ConsumerState<SetupFlowScreen> createState() => _SetupFlowScreenState();
@@ -32,6 +37,7 @@ class SetupFlowScreen extends ConsumerStatefulWidget {
 class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
   late _SetupStep _step;
   int _selectedLayout = 2;
+  bool _roomSaved = false;
 
   static const _layouts = [
     ('One section', 1),
@@ -61,6 +67,16 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     } else {
       _step = _SetupStep.roomScan;
     }
+  }
+
+  @override
+  void dispose() {
+    if (!_roomSaved && _capturedRoom != null) {
+      for (final path in _capturedRoom!.photoPaths) {
+        unawaited(discardShelfMedia(path));
+      }
+    }
+    super.dispose();
   }
 
   @override
@@ -132,6 +148,8 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
   bool _scanBusy = false;
   bool _savingReview = false;
   String? _scanError;
+  int _selectedRoomPhoto = 0;
+  String? _selectedPinContainerId;
 
   Widget _roomScan() => ListView(
     key: const ValueKey('room-scan'),
@@ -193,9 +211,20 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     try {
       final room = await ref.read(scanServiceProvider).scanRoom();
       if (!mounted) return;
+      if (!_roomSaved && _capturedRoom != null) {
+        for (final path in _capturedRoom!.photoPaths) {
+          unawaited(discardShelfMedia(path));
+        }
+      }
       _capturedRoom = room;
+      _roomSaved = false;
       _reviewContainers.clear();
       _acceptedContainerIds.clear();
+      _selectedRoomPhoto = 0;
+      _selectedPinContainerId = null;
+      if (widget.rescanExisting) {
+        _reviewContainers.addAll(ref.read(setupProvider).containers);
+      }
       for (final unit in room.storage) {
         final container = ShelfContainer(
           id: 'container-${DateTime.now().microsecondsSinceEpoch}-${_reviewContainers.length}',
@@ -262,6 +291,46 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        if (!manual && _capturedRoom!.photoPaths.isNotEmpty) ...[
+          Text(
+            'ROOM PHOTO VIEW',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ShelfRoomPhoto(
+            photoPath: _capturedRoom!.photoPaths[_selectedRoomPhoto],
+            markers: _reviewContainers,
+            onPhotoTap: _placeReviewPin,
+            onMarkerTap: (container) {
+              setState(() => _selectedPinContainerId = container.id);
+              _renameContainer(container);
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            _selectedPinContainerId == null
+                ? 'Tap the photo to add a storage spot, or select PLACE PIN below.'
+                : 'Tap the photo to place or move the selected storage pin.',
+          ),
+          if (_capturedRoom!.photoPaths.length > 1)
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                for (
+                  var index = 0;
+                  index < _capturedRoom!.photoPaths.length;
+                  index++
+                )
+                  ChoiceChip(
+                    label: Text('View ${index + 1}'),
+                    selected: index == _selectedRoomPhoto,
+                    onSelected: (_) =>
+                        setState(() => _selectedRoomPhoto = index),
+                  ),
+              ],
+            ),
+          const SizedBox(height: AppSpacing.md),
+        ],
         if (!manual) ...[
           const HardShadowCard(
             child: Text(
@@ -316,8 +385,16 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
             onTap: () => _renameContainer(container),
           ),
           if (!manual)
-            Row(
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
+                if (_capturedRoom!.photoPaths.isNotEmpty)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _selectedPinContainerId = container.id),
+                    child: const Text('PLACE PIN'),
+                  ),
                 TextButton(
                   onPressed: () => setState(() {
                     if (!_acceptedContainerIds.add(container.id)) {
@@ -330,7 +407,6 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
                         : 'CONFIRM',
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
                 TextButton(
                   onPressed: () => setState(() {
                     _reviewContainers.removeWhere(
@@ -364,14 +440,44 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     await _renameContainer(container);
   }
 
+  Future<void> _placeReviewPin(double x, double y) async {
+    final room = _capturedRoom;
+    if (room == null || room.photoPaths.isEmpty) return;
+    final photo = room.photoPaths[_selectedRoomPhoto];
+    final index = _reviewContainers.indexWhere(
+      (container) => container.id == _selectedPinContainerId,
+    );
+    if (index >= 0) {
+      setState(() {
+        _reviewContainers[index] = _reviewContainers[index].copyWith(
+          markerPhotoPath: photo,
+          markerX: x,
+          markerY: y,
+        );
+        _selectedPinContainerId = null;
+      });
+      return;
+    }
+    final container = ShelfContainer(
+      id: 'container-${DateTime.now().microsecondsSinceEpoch}',
+      name: 'New storage spot',
+      type: 'Storage',
+      markerPhotoPath: photo,
+      markerX: x,
+      markerY: y,
+    );
+    setState(() => _reviewContainers.add(container));
+    await _renameContainer(container);
+  }
+
   Future<void> _saveReviewedRoom() async {
     final room = _capturedRoom;
     if (room == null || _savingReview) return;
-    if (room.surfaces.isEmpty) {
+    if (room.surfaces.isEmpty && room.photoPaths.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'No room surfaces were captured. Scan again or set up manually.',
+            'No room view or surfaces were captured. Scan again or set up manually.',
           ),
         ),
       );
@@ -391,7 +497,14 @@ class _SetupFlowScreenState extends ConsumerState<SetupFlowScreen> {
     setState(() => _savingReview = true);
     try {
       await ref.read(setupProvider.notifier).saveScannedRoom(room, accepted);
-      if (mounted) setState(() => _step = _SetupStep.layout);
+      _roomSaved = true;
+      if (mounted) {
+        if (widget.rescanExisting) {
+          Navigator.pop(context);
+        } else {
+          setState(() => _step = _SetupStep.layout);
+        }
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -755,27 +868,71 @@ class CandidatePreviewScreen extends ConsumerStatefulWidget {
 class _CandidatePreviewScreenState
     extends ConsumerState<CandidatePreviewScreen> {
   bool _busy = false;
+  final Map<String, List<ItemCaptureSuggestion>> _suggestionsByPhoto = {};
 
   Future<void> _captureItems() async {
     if (_busy) return;
     setState(() => _busy = true);
+    ItemCaptureResult? capture;
     try {
-      final suggestions = await ref.read(scanServiceProvider).scanItems();
-      for (final suggestion in suggestions) {
-        await ref
-            .read(setupProvider.notifier)
-            .addCandidate(
-              sectionId: widget.section.id,
-              name: suggestion.name,
-              identifier: suggestion.identifier,
-              confidence: suggestion.confidence,
-              source: suggestion.source,
-            );
+      capture = await ref.read(scanServiceProvider).scanItems();
+      final suggestions = capture.suggestions;
+      final objectSuggestions = suggestions.where(
+        (suggestion) =>
+            suggestion.source == 'vision' &&
+            const [
+              'notebook',
+              'pen',
+              'camera',
+              'lens',
+              'cable',
+              'charger',
+              'bag',
+              'book',
+              'laptop',
+              'microphone',
+              'tripod',
+              'keyboard',
+              'mouse',
+              'monitor',
+              'speaker',
+              'adapter',
+              'battery',
+              'phone',
+              'tablet',
+              'computer',
+            ].any((word) => suggestion.name.toLowerCase().contains(word)),
+      );
+      final readableSuggestions = suggestions.where(
+        (suggestion) => suggestion.source != 'vision',
+      );
+      final preferred = objectSuggestions.isNotEmpty
+          ? objectSuggestions.first
+          : readableSuggestions.isNotEmpty
+          ? readableSuggestions.first
+          : null;
+      final barcode = suggestions.where(
+        (suggestion) => suggestion.source == 'barcode',
+      );
+      await ref
+          .read(setupProvider.notifier)
+          .addCandidate(
+            sectionId: widget.section.id,
+            name: preferred?.name ?? 'Unidentified item',
+            identifier: barcode.isNotEmpty ? barcode.first.identifier : '',
+            confidence: preferred?.confidence ?? 0,
+            source: preferred?.source ?? 'camera_photo',
+            photoPath: capture.photoPath,
+          );
+      if (mounted) {
+        setState(() => _suggestionsByPhoto[capture!.photoPath] = suggestions);
       }
-      if (mounted && suggestions.isEmpty) {
+      if (mounted && preferred == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No readable labels found. Add the item manually.'),
+            content: Text(
+              'Photo captured. Give this item a name before saving.',
+            ),
           ),
         );
       }
@@ -785,13 +942,22 @@ class _CandidatePreviewScreenState
           context,
         ).showSnackBar(SnackBar(content: Text(error.message)));
       }
+    } catch (error) {
+      if (capture != null) await discardShelfMedia(capture.photoPath);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not save the capture: $error')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _edit([ScanCandidate? candidate]) async {
-    final name = TextEditingController(text: candidate?.name ?? '');
+    final name = TextEditingController(
+      text: candidate?.name == 'Unidentified item' ? '' : candidate?.name ?? '',
+    );
     final category = TextEditingController(
       text: candidate?.category ?? 'Equipment',
     );
@@ -874,6 +1040,16 @@ class _CandidatePreviewScreenState
     }
   }
 
+  Future<void> _discardCandidate(ScanCandidate candidate) async {
+    await ref
+        .read(setupProvider.notifier)
+        .updateCandidate(candidate.id, state: 'rejected');
+    await discardShelfMedia(candidate.photoPath);
+    if (candidate.photoPath != null) {
+      _suggestionsByPhoto.remove(candidate.photoPath);
+    }
+  }
+
   Future<void> _confirm() async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -918,17 +1094,17 @@ class _CandidatePreviewScreenState
                 eyebrow: widget.section.name,
                 title: 'Review items',
                 subtitle:
-                    'Scan a label, then check each suggested name before saving.',
+                    'Capture one item, crop its photo, then check the suggested name before saving.',
               ),
               const SizedBox(height: AppSpacing.md),
               PrimaryActionButton(
-                label: _busy ? 'Opening camera…' : 'Scan items',
+                label: _busy ? 'Opening camera…' : 'Capture one item',
                 onPressed: _busy ? null : _captureItems,
               ),
               const SizedBox(height: AppSpacing.md),
               const HardShadowCard(
                 child: Text(
-                  'Camera text can be wrong. Edit any name that does not match the real item. Only items marked ready will be saved.',
+                  'Camera labels and text can be wrong. Check the photo and edit the name before confirming the section.',
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -973,17 +1149,26 @@ class _CandidatePreviewScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (candidate.photoPath != null) ...[
+                        SizedBox(
+                          height: 170,
+                          width: double.infinity,
+                          child: ShelfStoredImage(path: candidate.photoPath),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                      ],
                       Row(
                         children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.secondary,
-                              border: Border.all(width: 2),
-                              borderRadius: BorderRadius.circular(7),
+                          if (candidate.photoPath == null)
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.secondary,
+                                border: Border.all(width: 2),
+                                borderRadius: BorderRadius.circular(7),
+                              ),
                             ),
-                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Column(
@@ -1009,12 +1194,40 @@ class _CandidatePreviewScreenState
                           ),
                         ],
                       ),
+                      if (_suggestionsByPhoto[candidate.photoPath]
+                          case final evidence?) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'CAMERA SUGGESTIONS',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        Wrap(
+                          spacing: AppSpacing.sm,
+                          runSpacing: AppSpacing.sm,
+                          children: [
+                            for (final suggestion in evidence)
+                              ActionChip(
+                                label: Text(suggestion.name),
+                                onPressed: () => ref
+                                    .read(setupProvider.notifier)
+                                    .updateCandidate(
+                                      candidate.id,
+                                      name: suggestion.name,
+                                      identifier: suggestion.identifier.isEmpty
+                                          ? null
+                                          : suggestion.identifier,
+                                    ),
+                              ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.xs),
                       Wrap(
                         spacing: AppSpacing.sm,
                         runSpacing: AppSpacing.sm,
                         children: [
-                          if (!candidate.accepted)
+                          if (!candidate.accepted &&
+                              candidate.name != 'Unidentified item')
                             TextButton(
                               onPressed: () => ref
                                   .read(setupProvider.notifier)
@@ -1029,12 +1242,7 @@ class _CandidatePreviewScreenState
                             child: const Text('EDIT DETAILS'),
                           ),
                           TextButton(
-                            onPressed: () => ref
-                                .read(setupProvider.notifier)
-                                .updateCandidate(
-                                  candidate.id,
-                                  state: 'rejected',
-                                ),
+                            onPressed: () => _discardCandidate(candidate),
                             child: const Text('DISCARD'),
                           ),
                         ],
