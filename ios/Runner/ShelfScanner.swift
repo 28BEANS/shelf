@@ -2,13 +2,31 @@ import ARKit
 import AVFoundation
 import CoreML
 import Flutter
-import RoomPlan
 import UIKit
 import Vision
 
 private func matrixValues(_ value: simd_float4x4) -> [Double] {
   let columns = [value.columns.0, value.columns.1, value.columns.2, value.columns.3]
   return columns.flatMap { [Double($0.x), Double($0.y), Double($0.z), Double($0.w)] }
+}
+
+private func saveShelfImage(_ image: UIImage, folder: String, name: String) throws -> String {
+  let relative = "ShelfMedia/\(folder)/\(name).jpg"
+  let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+  let target = documents.appendingPathComponent(relative)
+  try FileManager.default.createDirectory(at: target.deletingLastPathComponent(),
+                                          withIntermediateDirectories: true)
+  guard let data = image.jpegData(compressionQuality: 0.78) else {
+    throw NSError(domain: "Shelf", code: 2,
+      userInfo: [NSLocalizedDescriptionKey: "Could not save the captured photo."])
+  }
+  try data.write(to: target, options: .atomic)
+  return relative
+}
+
+private func discardShelfFolder(_ folder: String) {
+  let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+  try? FileManager.default.removeItem(at: documents.appendingPathComponent("ShelfMedia/\(folder)"))
 }
 
 private func captureHeader(in view: UIView) {
@@ -33,7 +51,7 @@ private func captureHeader(in view: UIView) {
 }
 
 private func styleProgressCard(_ label: UILabel, in view: UIView, text: String) {
-  label.frame = CGRect(x: 16, y: view.bounds.height - 225,
+  label.frame = CGRect(x: 16, y: view.bounds.height - 300,
                        width: view.bounds.width - 32, height: 112)
   label.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
   label.backgroundColor = .white
@@ -65,21 +83,12 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "capabilities":
-      let backend: String
-      if #available(iOS 16.0, *), RoomCaptureSession.isSupported {
-        backend = "roomplan"
-      } else if ARWorldTrackingConfiguration.isSupported {
-        backend = "arkit"
-      } else {
-        backend = "unsupported"
-      }
+      let backend = ARWorldTrackingConfiguration.isSupported ? "arkit" : "unsupported"
       result(["roomBackend": backend,
               "itemCamera": UIImagePickerController.isSourceTypeAvailable(.camera),
               "semanticStorage": ShelfARController.hasDetector])
     case "startRoom":
-      var roomSupported = ARWorldTrackingConfiguration.isSupported
-      if #available(iOS 16.0, *), RoomCaptureSession.isSupported { roomSupported = true }
-      guard roomSupported else {
+      guard ARWorldTrackingConfiguration.isSupported else {
         result(FlutterError(code: "unsupported", message: "Room tracking is not supported on this device.", details: nil))
         return
       }
@@ -122,14 +131,10 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
     guard let presenter else {
       result(FlutterError(code: "unavailable", message: "No camera view is available.", details: nil)); return
     }
-    let controller: UIViewController
-    if #available(iOS 16.0, *), RoomCaptureSession.isSupported {
-      controller = ShelfRoomPlanController()
-    } else if ARWorldTrackingConfiguration.isSupported {
-      controller = ShelfARController()
-    } else {
+    guard ARWorldTrackingConfiguration.isSupported else {
       result(FlutterError(code: "unsupported", message: "Room tracking is not supported on this device.", details: nil)); return
     }
+    let controller = ShelfARController()
     pending = result
     roomController = controller
     let completion: (Result<[String: Any], Error>) -> Void = { [weak self] outcome in
@@ -141,10 +146,7 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
           message: error.localizedDescription, details: nil))
       }
     }
-    if #available(iOS 16.0, *), let roomplan = controller as? ShelfRoomPlanController {
-      roomplan.completion = completion
-    }
-    if let ar = controller as? ShelfARController { ar.completion = completion }
+    controller.completion = completion
     controller.modalPresentationStyle = .fullScreen
     presenter.present(controller, animated: true)
   }
@@ -155,6 +157,7 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
     }
     let picker = UIImagePickerController()
     picker.sourceType = .camera
+    picker.allowsEditing = true
     picker.delegate = self
     picker.modalPresentationStyle = .fullScreen
     self.picker = picker
@@ -178,18 +181,32 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
   func imagePickerController(_ picker: UIImagePickerController,
       didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
     picker.dismiss(animated: true)
-    guard let image = info[.originalImage] as? UIImage, let cgImage = image.cgImage else {
+    guard let image = (info[.editedImage] ?? info[.originalImage]) as? UIImage,
+          let cgImage = image.cgImage else {
       finish(error: FlutterError(code: "captureFailed", message: "No image was captured.", details: nil)); return
+    }
+    let photoPath: String
+    do {
+      photoPath = try saveShelfImage(image, folder: "items", name: UUID().uuidString)
+    } catch {
+      finish(error: FlutterError(code: "captureFailed", message: error.localizedDescription, details: nil)); return
     }
     let textRequest = VNRecognizeTextRequest()
     textRequest.recognitionLevel = .accurate
     textRequest.usesLanguageCorrection = false
     let barcodeRequest = VNDetectBarcodesRequest()
+    let classifyRequest = VNClassifyImageRequest()
     DispatchQueue.global(qos: .userInitiated).async { [weak self] in
       do {
-        try VNImageRequestHandler(cgImage: cgImage).perform([textRequest, barcodeRequest])
+        try VNImageRequestHandler(cgImage: cgImage).perform([textRequest, barcodeRequest, classifyRequest])
         var suggestions: [[String: Any]] = []
         var seen = Set<String>()
+        if let object = classifyRequest.results?.first, object.confidence >= 0.5 {
+          let label = object.identifier.components(separatedBy: ",").first?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? object.identifier
+          suggestions.append(["name": label.capitalized, "identifier": "",
+            "source": "vision", "confidence": Double(object.confidence)])
+        }
         for barcode in barcodeRequest.results ?? [] {
           guard let value = barcode.payloadStringValue, !value.isEmpty, seen.insert(value).inserted else { continue }
           suggestions.append(["name": value, "identifier": value, "source": "barcode", "confidence": Double(barcode.confidence)])
@@ -200,106 +217,17 @@ final class ShelfScanner: NSObject, UIImagePickerControllerDelegate, UINavigatio
           guard value.count >= 3, seen.insert(value).inserted else { continue }
           suggestions.append(["name": value, "identifier": "", "source": "ocr", "confidence": Double(candidate.confidence)])
         }
-        DispatchQueue.main.async { self?.finish(value: suggestions) }
+        DispatchQueue.main.async {
+          self?.finish(value: ["photoPath": photoPath, "suggestions": suggestions])
+        }
       } catch {
         DispatchQueue.main.async {
+          let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+          try? FileManager.default.removeItem(at: documents.appendingPathComponent(photoPath))
           self?.finish(error: FlutterError(code: "captureFailed", message: error.localizedDescription, details: nil))
         }
       }
     }
-  }
-}
-
-@available(iOS 16.0, *)
-private final class ShelfRoomPlanController: UIViewController, RoomCaptureViewDelegate {
-  var completion: ((Result<[String: Any], Error>) -> Void)?
-  private let captureView = RoomCaptureView(frame: .zero)
-  private var cancelled = false
-  private let status = UILabel()
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    view.backgroundColor = .black
-    captureView.frame = view.bounds
-    captureView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-    captureView.delegate = self
-    view.addSubview(captureView)
-    captureHeader(in: view)
-    styleProgressCard(status, in: view,
-      text: "  SCAN PROGRESS                         ACTIVE\n  RoomPlan is capturing room geometry\n  Review storage after finishing")
-    addButton("Cancel", x: 16, action: #selector(cancel))
-    addButton("Finish scan", x: 110, width: view.bounds.width - 126, action: #selector(finishScan))
-  }
-  override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(animated)
-    captureView.captureSession.run(configuration: RoomCaptureSession.Configuration())
-  }
-  override func viewDidDisappear(_ animated: Bool) {
-    super.viewDidDisappear(animated)
-    captureView.captureSession.stop()
-  }
-  private func addButton(_ title: String, x: CGFloat, width: CGFloat = 86, action: Selector) {
-    let button = UIButton(type: .system)
-    button.setTitle(title, for: .normal)
-    button.setTitleColor(.black, for: .normal)
-    button.titleLabel?.font = .boldSystemFont(ofSize: 14)
-    button.backgroundColor = title == "Finish scan" ? UIColor(red: 0.8, green: 1, blue: 0, alpha: 1) : .white
-    button.layer.borderColor = UIColor.black.cgColor
-    button.layer.borderWidth = 2
-    button.layer.cornerRadius = 6
-    button.frame = CGRect(x: x, y: view.bounds.height - 93, width: width, height: 48)
-    button.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
-    button.addTarget(self, action: action, for: .touchUpInside)
-    view.addSubview(button)
-  }
-  @objc private func cancel() {
-    cancelled = true
-    captureView.captureSession.stop()
-    dismiss(animated: true)
-    completion?(.failure(NSError(domain: "Shelf", code: 1, userInfo: [NSLocalizedDescriptionKey: "Capture cancelled."])))
-    completion = nil
-  }
-  @objc private func finishScan() { captureView.captureSession.stop() }
-  func captureView(shouldPresent roomDataForProcessing: CapturedRoomData, error: Error?) -> Bool {
-    if let error, !cancelled {
-      completion?(.failure(error))
-      completion = nil
-      dismiss(animated: true)
-      return false
-    }
-    return !cancelled
-  }
-  func captureView(didPresent room: CapturedRoom, error: Error?) {
-    guard !cancelled else { return }
-    if let error { completion?(.failure(error)); completion = nil; dismiss(animated: true); return }
-    let surfaces: [[String: Any]] =
-      [("wall", room.walls), ("door", room.doors), ("window", room.windows), ("opening", room.openings)]
-      .flatMap { kind, values in values.map { surface in
-        ["id": surface.identifier.uuidString, "kind": kind,
-         "width": Double(surface.dimensions.x), "height": Double(surface.dimensions.y),
-         "depth": Double(surface.dimensions.z),
-         "transform": matrixValues(surface.transform)] as [String: Any]
-      }}
-    let storage: [[String: Any]] = room.objects.compactMap { object in
-      let label = String(describing: object.category).lowercased()
-      let kind: String
-      if label.contains("cabinet") { kind = "Cabinet" }
-      else if label.contains("storage") { kind = "Storage" }
-      else if label.contains("shelf") { kind = "Shelf" }
-      else { return nil }
-      let confidence: Double = switch object.confidence {
-      case .high: 0.9
-      case .medium: 0.6
-      case .low: 0.3
-      }
-      return ["id": object.identifier.uuidString, "kind": kind, "name": "",
-        "source": "roomplan", "width": Double(object.dimensions.x),
-        "height": Double(object.dimensions.y), "depth": Double(object.dimensions.z),
-        "confidence": confidence, "transform": matrixValues(object.transform)]
-    }
-    completion?(.success(["backend": "roomplan", "surfaces": surfaces, "storage": storage]))
-    completion = nil
-    dismiss(animated: true)
   }
 }
 
@@ -309,6 +237,8 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     return (try? VNCoreMLModel(for: MLModel(contentsOf: url))) != nil
   }
   var completion: ((Result<[String: Any], Error>) -> Void)?
+  private let scanId = UUID().uuidString
+  private var photos: [String] = []
   private let sceneView = ARSCNView(frame: .zero)
   private var planes: [UUID: ARPlaneAnchor] = [:]
   private var marks: [[String: Any]] = []
@@ -361,6 +291,8 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     addButton("Cancel", x: 16, action: #selector(cancel))
     addButton("Mark storage", x: 110, width: 118, action: #selector(markStorage))
     addButton("Finish", x: 236, width: view.bounds.width - 252, action: #selector(finishScan))
+    addButton("Save this room view", x: 16, width: view.bounds.width - 32,
+              yOffset: 156, action: #selector(capturePhoto))
     styleProgressCard(status, in: view,
       text: "  SCAN PROGRESS                         ACTIVE\n  0 room surfaces • 0 storage marks\n  \(trackingMessage)")
   }
@@ -377,7 +309,8 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     super.viewDidDisappear(animated)
     sceneView.session.pause()
   }
-  private func addButton(_ title: String, x: CGFloat, width: CGFloat = 82, action: Selector) {
+  private func addButton(_ title: String, x: CGFloat, width: CGFloat = 82,
+                         yOffset: CGFloat = 93, action: Selector) {
     let button = UIButton(type: .system)
     button.setTitle(title, for: .normal)
     button.setTitleColor(.black, for: .normal)
@@ -386,13 +319,24 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     button.layer.borderColor = UIColor.black.cgColor
     button.layer.borderWidth = 2
     button.layer.cornerRadius = 6
-    button.frame = CGRect(x: x, y: view.bounds.height - 93, width: width, height: 48)
+    button.frame = CGRect(x: x, y: view.bounds.height - yOffset, width: width, height: 48)
     button.autoresizingMask = [.flexibleTopMargin, .flexibleWidth]
     button.addTarget(self, action: action, for: .touchUpInside)
     view.addSubview(button)
   }
+  @objc private func capturePhoto() {
+    do {
+      let path = try saveShelfImage(sceneView.snapshot(), folder: "rooms/\(scanId)",
+                                    name: "view-\(photos.count + 1)")
+      photos.append(path)
+      status.text = "  ROOM VIEWS SAVED: \(photos.count)\n  Move to another side and save another view\n  Finish when the room is covered"
+    } catch {
+      status.text = "  Could not save this view\n  \(error.localizedDescription)"
+    }
+  }
   @objc private func cancel() {
     sceneView.session.pause()
+    discardShelfFolder("rooms/\(scanId)")
     dismiss(animated: true)
     completion?(.failure(NSError(domain: "Shelf", code: 1, userInfo: [NSLocalizedDescriptionKey: "Capture cancelled."])))
     completion = nil
@@ -409,6 +353,7 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
     status.text = "  SCAN PROGRESS                         ACTIVE\n  \(planes.count) surfaces • \(marks.count) storage marks\n  Review names and types after finishing"
   }
   @objc private func finishScan() {
+    if photos.isEmpty { capturePhoto() }
     sceneView.session.pause()
     let surfaces: [[String: Any]] = planes.values.map { plane in
       let kind: String
@@ -441,7 +386,9 @@ private final class ShelfARController: UIViewController, ARSessionDelegate {
       }
     }
     completion?(.success(["backend": "arkit", "surfaces": surfaces,
-      "storage": marks + stable]))
+      "storage": marks + stable, "scanId": scanId, "photoPaths": photos,
+      "previewPath": photos.first as Any? ?? NSNull(),
+      "visualStatus": photos.isEmpty ? "unavailable" : "photo"]))
     completion = nil
     dismiss(animated: true)
   }

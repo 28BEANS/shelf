@@ -102,17 +102,37 @@ class ShelfRoom {
     required this.backend,
     required this.surfaces,
     required this.storage,
+    this.scanId = '',
+    this.photoPaths = const [],
+    this.previewPath,
+    this.modelPath,
+    this.visualStatus = 'unavailable',
   });
   final String backend;
   final List<ShelfSurface> surfaces;
   final List<ShelfStorageUnit> storage;
+  final String scanId;
+  final List<String> photoPaths;
+  final String? previewPath;
+  final String? modelPath;
+  final String visualStatus;
   Map<String, Object?> toJson() => {
     'backend': backend,
+    'scanId': scanId,
+    'photoPaths': photoPaths,
+    'previewPath': previewPath,
+    'modelPath': modelPath,
+    'visualStatus': visualStatus,
     'surfaces': surfaces.map((value) => value.toJson()).toList(),
     'storage': storage.map((value) => value.toJson()).toList(),
   };
   factory ShelfRoom.fromMap(Map<dynamic, dynamic> map) => ShelfRoom(
     backend: map['backend'] as String,
+    scanId: map['scanId'] as String? ?? '',
+    photoPaths: (map['photoPaths'] as List?)?.cast<String>() ?? const [],
+    previewPath: map['previewPath'] as String?,
+    modelPath: map['modelPath'] as String?,
+    visualStatus: map['visualStatus'] as String? ?? 'unavailable',
     surfaces: (map['surfaces'] as List)
         .map((value) => ShelfSurface.fromMap(value as Map))
         .toList(),
@@ -140,10 +160,23 @@ class ItemCaptureSuggestion {
       );
 }
 
+class ItemCaptureResult {
+  const ItemCaptureResult({required this.photoPath, required this.suggestions});
+  final String photoPath;
+  final List<ItemCaptureSuggestion> suggestions;
+  factory ItemCaptureResult.fromMap(Map<dynamic, dynamic> map) =>
+      ItemCaptureResult(
+        photoPath: map['photoPath'] as String,
+        suggestions: (map['suggestions'] as List)
+            .map((value) => ItemCaptureSuggestion.fromMap(value as Map))
+            .toList(),
+      );
+}
+
 abstract interface class ScanService {
   Future<ScanCapabilities> capabilities();
   Future<ShelfRoom> scanRoom();
-  Future<List<ItemCaptureSuggestion>> scanItems();
+  Future<ItemCaptureResult> scanItems();
   Future<void> cancel();
 }
 
@@ -188,10 +221,9 @@ class NativeScanService implements ScanService {
       ShelfRoom.fromMap(await _invoke<Map<dynamic, dynamic>>('startRoom'));
 
   @override
-  Future<List<ItemCaptureSuggestion>> scanItems() async =>
-      (await _invoke<List<dynamic>>(
-        'startItems',
-      )).map((value) => ItemCaptureSuggestion.fromMap(value as Map)).toList();
+  Future<ItemCaptureResult> scanItems() async => ItemCaptureResult.fromMap(
+    await _invoke<Map<dynamic, dynamic>>('startItems'),
+  );
 
   @override
   Future<void> cancel() async {
