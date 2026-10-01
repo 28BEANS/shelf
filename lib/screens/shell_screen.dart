@@ -10,7 +10,9 @@ import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_bottom_navigation.dart';
 import '../widgets/shelf_brand.dart';
 import '../widgets/shelf_illustration.dart';
+import '../widgets/shelf_stored_image.dart';
 import 'inventory_screens.dart';
+import 'room_photo_screen.dart';
 import 'setup_flow_screen.dart';
 
 class ShelfShell extends ConsumerStatefulWidget {
@@ -23,7 +25,10 @@ class ShelfShell extends ConsumerStatefulWidget {
 class _ShelfShellState extends ConsumerState<ShelfShell> {
   int _index = 0;
 
-  Future<void> _openSetup({bool manual = false}) async {
+  Future<void> _openSetup({
+    bool manual = false,
+    bool rescanExisting = false,
+  }) async {
     final setup = ref.read(setupProvider);
     if (setup.workspace == null) {
       final name = TextEditingController();
@@ -93,7 +98,11 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => SetupFlowScreen(manual: manual, newSpace: !manual),
+        builder: (_) => SetupFlowScreen(
+          manual: manual,
+          newSpace: !manual,
+          rescanExisting: rescanExisting,
+        ),
       ),
     );
     if (mounted) setState(() => _index = 0);
@@ -113,7 +122,10 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
       );
     }
     final pages = [
-      _HomePage(onScan: () => setState(() => _index = 1)),
+      _HomePage(
+        onScan: () => setState(() => _index = 1),
+        onRescan: () => _openSetup(rescanExisting: true),
+      ),
       _ScanPage(
         onScan: () => _openSetup(),
         onManual: () => _openSetup(manual: true),
@@ -170,8 +182,12 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
 }
 
 class _HomePage extends ConsumerWidget {
-  const _HomePage({required this.onScan});
+  const _HomePage({
+    required this.onScan,
+    required this.onRescan,
+  });
   final VoidCallback onScan;
+  final VoidCallback onRescan;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -211,7 +227,19 @@ class _HomePage extends ConsumerWidget {
                 ),
                 Text(state.isComplete ? 'Ready to use' : 'Continue setup'),
                 const SizedBox(height: AppSpacing.md),
-                const ShelfIllustration(height: 148),
+                if (state.visualScan?.previewPath case final photoPath?)
+                  Container(
+                    height: 148,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondary,
+                      border: Border.all(width: 2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ShelfStoredImage(path: photoPath),
+                  )
+                else
+                  const ShelfIllustration(height: 148),
                 const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
@@ -239,15 +267,20 @@ class _HomePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 PrimaryActionButton(
-                  label: 'Open space',
+                  label: state.visualScan?.photoPaths.isNotEmpty == true
+                      ? 'Open room photo view'
+                      : 'Open space',
                   onPressed: state.container == null
                       ? null
                       : () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ContainerOverviewScreen(
-                              containerId: state.container!.id,
-                            ),
+                            builder: (_) =>
+                                state.visualScan?.photoPaths.isNotEmpty == true
+                                ? const RoomPhotoScreen()
+                                : ContainerOverviewScreen(
+                                    containerId: state.container!.id,
+                                  ),
                           ),
                         ),
                 ),
@@ -303,6 +336,14 @@ class _HomePage extends ConsumerWidget {
           label: 'Scan new space',
           onPressed: onScan,
         ),
+        if (state.visualScan?.photoPaths.isNotEmpty == true) ...[
+          const SizedBox(height: AppSpacing.sm),
+          TextButton.icon(
+            onPressed: onRescan,
+            icon: const Icon(Icons.refresh),
+            label: const Text('RESCAN THIS ROOM'),
+          ),
+        ],
       ],
     );
   }
