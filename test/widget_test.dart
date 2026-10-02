@@ -9,13 +9,14 @@ import 'package:final_project/data/inventory_repository.dart';
 import 'package:final_project/models/shelf_models.dart';
 import 'package:final_project/state/providers.dart';
 import 'package:final_project/services/scan_service.dart';
+import 'package:final_project/services/shelf_auth.dart';
 
 void main() {
   late AppDatabase database;
   setUp(() => database = AppDatabase(NativeDatabase.memory()));
   tearDown(() => database.close());
 
-  testWidgets('local sign-in opens the spaces screen', (tester) async {
+  testWidgets('passcode opens the spaces screen', (tester) async {
     _phoneViewport(tester);
     await _pumpApp(tester, database);
 
@@ -26,7 +27,7 @@ void main() {
     expect(find.text('No spaces yet'), findsOneWidget);
   });
 
-  testWidgets('local sign-in requires both fields', (tester) async {
+  testWidgets('login requires six digits', (tester) async {
     _phoneViewport(tester);
     await _pumpApp(tester, database);
     await tester.drag(find.byType(ListView).first, const Offset(0, -400));
@@ -34,7 +35,48 @@ void main() {
     await tester.tap(find.byKey(const Key('enter-shelf')));
     await tester.pump();
 
-    expect(find.text('Required'), findsNWidgets(2));
+    expect(find.text('Enter exactly six digits.'), findsOneWidget);
+  });
+
+  testWidgets('logout returns to passcode login', (tester) async {
+    _phoneViewport(tester);
+    await _pumpApp(tester, database);
+    await _signIn(tester);
+    await tester.tap(find.byKey(const Key('logout')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.byKey(const Key('passcode')), findsOneWidget);
+    expect(find.text('Your Spaces'), findsNothing);
+  });
+
+  testWidgets('Google registration saves PIN then returns to login', (
+    tester,
+  ) async {
+    _phoneViewport(tester);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(database)],
+        child: ShelfApp(
+          authGateway: _TestAuth(initial: ShelfAuthStep.register),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('enter-shelf')));
+    await tester.tap(find.byKey(const Key('enter-shelf')));
+    await tester.pumpAndSettle();
+    expect(find.text('Secure this device'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('passcode')), '123456');
+    await tester.enterText(find.byKey(const Key('confirm-passcode')), '123456');
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('enter-shelf')));
+    await tester.tap(find.byKey(const Key('enter-shelf')));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Your Spaces'), findsNothing);
   });
 
   testWidgets('manual room setup reaches the mockup section screen', (
@@ -142,16 +184,20 @@ Future<void> _pumpApp(
   WidgetTester tester,
   AppDatabase database, {
   ScanService? scanService,
-}) => tester.pumpWidget(
-  ProviderScope(
-    overrides: [
-      databaseProvider.overrideWithValue(database),
-      if (scanService != null)
-        scanServiceProvider.overrideWithValue(scanService),
-    ],
-    child: const ShelfApp(),
-  ),
-);
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        if (scanService != null)
+          scanServiceProvider.overrideWithValue(scanService),
+      ],
+      child: ShelfApp(authGateway: _TestAuth()),
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 2300));
+  await tester.pumpAndSettle();
+}
 
 void _phoneViewport(WidgetTester tester) {
   tester.view.physicalSize = const Size(390, 844);
@@ -214,16 +260,26 @@ class _TestScanService implements ScanService {
 }
 
 Future<void> _signIn(WidgetTester tester) async {
-  await tester.enterText(
-    find.widgetWithText(TextFormField, 'Email'),
-    'demo@shelf.local',
-  );
-  await tester.enterText(
-    find.widgetWithText(TextFormField, 'Password'),
-    'password',
-  );
+  await tester.pump();
+  await tester.enterText(find.byKey(const Key('passcode')), '123456');
   await tester.drag(find.byType(ListView).first, const Offset(0, -400));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('enter-shelf')));
   await tester.pumpAndSettle();
+}
+
+class _TestAuth implements ShelfAuthGateway {
+  _TestAuth({this.initial = ShelfAuthStep.login});
+  final ShelfAuthStep initial;
+  @override
+  Future<ShelfAuthStep> initialStep() async => initial;
+  @override
+  Future<ShelfAuthStep> continueWithGoogle() async =>
+      ShelfAuthStep.createPasscode;
+  @override
+  Future<void> createPasscode(String passcode) async {}
+  @override
+  Future<bool> unlock(String passcode) async => passcode == '123456';
+  @override
+  Future<void> logout() async {}
 }
