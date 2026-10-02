@@ -16,7 +16,9 @@ import 'room_photo_screen.dart';
 import 'setup_flow_screen.dart';
 
 class ShelfShell extends ConsumerStatefulWidget {
-  const ShelfShell({super.key});
+  const ShelfShell({super.key, required this.onLogout});
+
+  final VoidCallback onLogout;
 
   @override
   ConsumerState<ShelfShell> createState() => _ShelfShellState();
@@ -125,6 +127,7 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
       _HomePage(
         onScan: () => setState(() => _index = 1),
         onRescan: () => _openSetup(rescanExisting: true),
+        onLogout: widget.onLogout,
       ),
       _ScanPage(
         onScan: () => _openSetup(),
@@ -185,9 +188,11 @@ class _HomePage extends ConsumerWidget {
   const _HomePage({
     required this.onScan,
     required this.onRescan,
+    required this.onLogout,
   });
   final VoidCallback onScan;
   final VoidCallback onRescan;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -206,6 +211,16 @@ class _HomePage extends ConsumerWidget {
           ).formatMediumDate(DateTime.now()),
           title: 'Your Spaces',
           subtitle: 'Open a space or continue setup.',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            key: const Key('logout'),
+            onPressed: onLogout,
+            icon: const Icon(Icons.lock_outline),
+            label: const Text('LOG OUT'),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         if (state.workspace != null && state.containers.isNotEmpty)
