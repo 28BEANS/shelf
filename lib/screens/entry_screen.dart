@@ -8,6 +8,7 @@ import '../widgets/hard_shadow_card.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_brand.dart';
 import '../widgets/shelf_illustration.dart';
+import '../widgets/shelf_loading_animation.dart';
 import 'shell_screen.dart';
 
 class EntryScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class _EntryScreenState extends State<EntryScreen> {
   ShelfAuthStep? _step;
   bool _busy = false;
   bool _unlocked = false;
+  bool _startupComplete = false;
   String? _error;
 
   @override
@@ -42,6 +44,9 @@ class _EntryScreenState extends State<EntryScreen> {
   }
 
   Future<void> _load() async {
+    final minimumDisplay = Future<void>.delayed(
+      const Duration(milliseconds: 2200),
+    );
     ShelfAuthStep? step;
     String? error;
     try {
@@ -49,10 +54,12 @@ class _EntryScreenState extends State<EntryScreen> {
     } catch (_) {
       error = 'Could not load your account. Try reopening Shelf.';
     }
+    await minimumDisplay;
     if (mounted) {
       setState(() {
         _step = step;
         _error = error;
+        _startupComplete = true;
       });
     }
   }
@@ -143,6 +150,17 @@ class _EntryScreenState extends State<EntryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_startupComplete) {
+      return const Scaffold(
+        body: ShelfMobileRail(
+          child: SafeArea(
+            child: Center(
+              child: ShelfLoadingAnimation(label: 'OPENING YOUR SHELF'),
+            ),
+          ),
+        ),
+      );
+    }
     if (_unlocked) return ShelfShell(onLogout: _logout);
     return Scaffold(
       body: ShelfMobileRail(

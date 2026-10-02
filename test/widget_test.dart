@@ -10,11 +10,30 @@ import 'package:final_project/models/shelf_models.dart';
 import 'package:final_project/state/providers.dart';
 import 'package:final_project/services/scan_service.dart';
 import 'package:final_project/services/shelf_auth.dart';
+import 'package:final_project/widgets/shelf_loading_animation.dart';
 
 void main() {
   late AppDatabase database;
   setUp(() => database = AppDatabase(NativeDatabase.memory()));
   tearDown(() => database.close());
+
+  testWidgets('startup shows the Shelf animation before login', (tester) async {
+    _phoneViewport(tester);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(database)],
+        child: ShelfApp(authGateway: _TestAuth()),
+      ),
+    );
+    expect(find.byType(ShelfLoadingAnimation), findsOneWidget);
+    expect(find.text('OPENING YOUR SHELF'), findsOneWidget);
+    expect(find.byKey(const Key('passcode')), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pumpAndSettle();
+    expect(find.byType(ShelfLoadingAnimation), findsNothing);
+    expect(find.byKey(const Key('passcode')), findsOneWidget);
+  });
 
   testWidgets('passcode opens the spaces screen', (tester) async {
     _phoneViewport(tester);

@@ -10,6 +10,7 @@ import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_bottom_navigation.dart';
 import '../widgets/shelf_brand.dart';
 import '../widgets/shelf_illustration.dart';
+import '../widgets/shelf_loading_animation.dart';
 import '../widgets/shelf_stored_image.dart';
 import 'inventory_screens.dart';
 import 'room_photo_screen.dart';
@@ -114,7 +115,9 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
   Widget build(BuildContext context) {
     final setup = ref.watch(setupProvider);
     if (setup.loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: ShelfLoadingAnimation(label: 'OPENING YOUR SHELF')),
+      );
     }
     if (setup.error != null) {
       return Scaffold(
