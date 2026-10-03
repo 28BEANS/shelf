@@ -180,3 +180,71 @@ scores zero.
 - **File:** `lib/data/inventory_repository.dart`
 - **Commit:** [https://github.com/28BEANS/shelf/commit/15567a6](https://github.com/28BEANS/shelf/commit/15567a6)
 - **What it does and why we kept it:** The part I understand best here is `moveItem`. It first checks the item and destination, then updates the item's current section and writes a movement record inside one database transaction. The item's home section stays the same. I understand the reason for doing both writes together: if the app only changed the current section but failed to save the history, Shelf would show the new location without recording how it got there. We kept this so the current location and movement history stay in sync.
+
+## Week 3 additions, recorded October 4
+
+These entries describe the Week 3 work and link to the retrospective batches
+committed for September 29–October 3. ChatGPT Codex assisted with the code;
+the project owner set the product requirements, reviewed the design, configured
+Google/Supabase, and tested the signed build on an iPhone 12 mini. I am not
+claiming that the owner typed the AI-generated implementation by hand.
+
+### Photo-backed scan data
+
+- **Tool:** ChatGPT Codex.
+- **Request:** Keep actual room captures and item photos on the device for the non-LiDAR workflow.
+- **Returned:** Drift schema, model fields, and repository methods for photo paths and scan records.
+- **Kept/changed:** Kept local persistence and stable inventory identifiers; made saved room views distinct from a textured 3D model.
+- **Commits:** [scan records](https://github.com/28BEANS/shelf/commit/8726dc4), [repository and state](https://github.com/28BEANS/shelf/commit/1fddaf9).
+
+### Non-LiDAR camera bridge
+
+- **Tool:** ChatGPT Codex.
+- **Request:** Remove the LiDAR workflow and make the iPhone 12 mini camera path produce usable room observations.
+- **Returned:** iOS scanner bridge, Flutter scan contract, and a contract test.
+- **Kept/changed:** Kept the ARKit/manual capture path and explicit observation types; did not label this as automatic cabinet detection.
+- **Commit:** [camera observations](https://github.com/28BEANS/shelf/commit/cf8160c).
+
+### Photo review and saved views
+
+- **Tool:** ChatGPT Codex.
+- **Request:** Let the user review room and item photos, reopen views, move pins, and remove a view safely.
+- **Returned:** Capture/review widgets, stored-image display, and a saved-room-view screen.
+- **Kept/changed:** Kept a confirmation step before saving and blocked removal while storage pins still refer to the view, so inventory does not lose its placement.
+- **Commits:** [photo review](https://github.com/28BEANS/shelf/commit/969068f), [view management](https://github.com/28BEANS/shelf/commit/2585aeb).
+
+### Google account and passcode
+
+- **Tool:** ChatGPT Codex.
+- **Request:** Replace the preview login with Google registration, followed by a six-digit passcode; later unlocks use only the passcode.
+- **Returned:** Supabase auth service, redirect handling, entry screens, and tests.
+- **Kept/changed:** Kept Google only for initial registration/reconnection and a local passcode gate for normal openings. I checked the owner’s device result: registration, logout, relaunch, and saved workspace worked. I also documented that logout locks the UI rather than revoking the stored session.
+- **Commits:** [auth service](https://github.com/28BEANS/shelf/commit/9d53a88), [entry flow](https://github.com/28BEANS/shelf/commit/edc2091), [tests](https://github.com/28BEANS/shelf/commit/250bd4c).
+
+### Launch animation
+
+- **Tool:** ChatGPT Codex.
+- **Request:** Show a Shelf loading scene when the app opens before the passcode screen.
+- **Returned:** An animated shelf scene and launch integration.
+- **Kept/changed:** Kept the branded motion after confirming on the iPhone that it appears on cold launch and the workspace still opens after unlock.
+- **Commits:** [animation](https://github.com/28BEANS/shelf/commit/da8fa69), [launch integration](https://github.com/28BEANS/shelf/commit/7d939f3).
+
+### Interactive login illustration
+
+- **Tool:** ChatGPT Codex and image generation.
+- **Request:** Replace the flat login illustration with an immersive 3D-style Shelf graphic, then make dragging visibly move it and remove its dark inner frame.
+- **Returned:** A generated storage diorama, Flutter gesture/parallax treatment, and a motion test.
+- **Kept/changed:** Kept the lavender/black/lime brand palette, increased the interaction response after the first phone check, and respected Reduce Motion. The owner confirmed the final drag response and seamless card edge on device.
+- **Commits:** [illustration](https://github.com/28BEANS/shelf/commit/d8cee18), [interaction test](https://github.com/28BEANS/shelf/commit/3896e32).
+
+### Another AI mistake: motion too subtle
+
+- **Output:** The first interactive graphic responded to touch so subtly that it looked stationary on the physical iPhone.
+- **Problem:** A decorative graphic that appears static did not meet the requested immersive interaction.
+- **Fix:** I asked Codex to increase the visible drag response and remove the heavy black frame. The owner then confirmed both changes on device.
+- **Commit:** [revised illustration](https://github.com/28BEANS/shelf/commit/d8cee18).
+
+### Who wrote what in Week 3
+
+- **Project owner:** Chose the non-LiDAR focus, Google-only registration, passcode-only returning login, separate Shelf 2.0 installation, and the revised illustration interaction. Configured the external OAuth settings and tested the release app on the iPhone 12 mini. These decisions and checks guided the code; they are not a claim of hand-authoring the Flutter and Swift changes.
+- **ChatGPT Codex:** Drafted the Week 3 Flutter/Swift implementation, tests, and the retrospective documentation. For example, [`lib/services/shelf_auth.dart`](lib/services/shelf_auth.dart) in [9d53a88](https://github.com/28BEANS/shelf/commit/9d53a88) keeps the Google session available for passcode-only return while the passcode verifier is stored locally. The session check is needed so a six-digit number alone cannot create a Google account identity; the local gate is for this device, and the inventory still does not sync through Supabase.
