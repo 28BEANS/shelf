@@ -36,3 +36,23 @@ it.
 - Notifications off.
 - Sensible sample data, not "asdf".
 - One unbroken take per feature. Say what you are doing while you do it.
+
+## October 4 recording outline and status
+
+The final 3–5 minute recording has **not yet been captured or published**. Use
+the signed Shelf 2.0 iPhone app, blur account details, and show these steps:
+
+1. Introduce the equipment-finding problem and the local-first approach.
+2. Show Google registration only if a safe test account is ready; otherwise
+   show the launch animation, passcode unlock, and saved workspace.
+3. Open a saved room photo view, demonstrate movable storage labels and view
+   removal, then add or review an item from an iPhone camera capture.
+4. Search, move, check out, and return an item; close and reopen to show local
+   persistence.
+5. Spend 2–3 minutes explaining AI assistance, a corrected AI mistake, the
+   Drift inventory model, and the limits: no textured 3D room reconstruction,
+   no cloud inventory sync, and incomplete scanner failure/barcode tests.
+
+The course rubric also calls for a slide deck, a square title image, and a
+public Google Drive link for the video. Those deliverables are not represented
+as completed here.

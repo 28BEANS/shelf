@@ -158,7 +158,51 @@ The native camera view now carries the mockup's scanning header, live status car
 
 **Still open after the physical test:** a licensed Core ML storage detector and its on-device accuracy/duplicate checks; LiDAR RoomPlan capture on a supported phone; barcode input, failure cases, and a measured scan-quality sample; the complete Chrome manual walkthrough. The single tracked plane and manual marks do not satisfy automatic non-LiDAR storage recognition acceptance.
 
+**October 3 Shelf 2.0 authentication check:** Supabase Google OAuth redirected
+successfully and the separate signed Shelf 2.0 build installed on the connected
+iPhone 12 mini without replacing the original Shelf app. The tester completed
+Google registration and six-digit passcode setup, reached the saved workspace,
+used Log out, unlocked with the passcode, then closed and reopened Shelf 2.0.
+The relaunch asked only for the passcode and the saved workspace remained.
+Static analysis and all 15 automated tests passed. This verifies the account
+and local unlock flow on that device; inventory remains on-device rather than
+synced through Supabase.
+
 ## Week 3 (October 4-10, 2026)
 
 Planned final-week focus: complete the core flow, verify the web fallback and
 local data behavior, polish the documentation, and prepare the final demo.
+
+### Early Week 3 progress, September 29–October 4
+
+This work was developed incrementally before the October 4 final-week start.
+The Week 3 changes were assembled into retrospective Git batches on October 4
+with author and committer dates set across September 29–October 4. Those Git
+dates are a reconstructed work log, not proof that each batch was committed
+on its displayed date. Exact hours and a day-by-day time log were not recorded.
+
+- The visual-scan direction was explored from September 29. The active build
+  dropped the LiDAR workflow and now saves camera-backed room views with
+  movable storage pins. Saved views can be removed. This is a labelled photo
+  experience, not a textured 3D model or automatic shelf detector.
+- On October 3, the separate Shelf 2.0 iPhone build gained Google registration
+  through Supabase Auth, six-digit passcode setup and unlock, a lock-style
+  **Log out** action, launch animation, and an interactive 3D shelf illustration.
+  The owner verified Google sign-in, passcode relaunch, preserved workspace,
+  and visible illustration drag interaction on an iPhone 12 mini. The original
+  Shelf app stayed installed under its separate bundle identifier.
+- The interactive graphic initially felt static on the phone. The later
+  illustration change increased the visible response to dragging and removed
+  its dark frame; the owner confirmed both on device.
+- `flutter analyze` passed, 17 Flutter tests passed, and the release web build
+  succeeded after the source changes. These are build checks, not proof that
+  Google OAuth works in the public web demo. The Pages deployment is gated
+  until its public OAuth configuration is provided.
+- On October 4, the proposal, mockup notes, design-system notes, visual-scan
+  plan, README, security checklist, and AI usage record were updated as dated
+  additions. Older snapshots are retained for context.
+
+**Open before a final submission:** exercise barcode and scanner failure
+cases; audit all write-path validation; capture current Shelf 2.0 screenshots;
+record the 3–5 minute demo and AI explanation; prepare the slides and square
+image; verify public web OAuth before replacing the earlier browser demo.

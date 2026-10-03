@@ -6,24 +6,38 @@ Shelf is a local inventory app for a shared equipment room. It saves the room's
 storage layout and items on the device, so a team can search for equipment,
 check it out, move it, and return it to its home section.
 
+The current Shelf 2.0 development build uses Supabase Auth for Google-only
+registration. After registration, the user creates a six-digit device passcode
+and returns to the login page. Later openings and the in-app **Log out** action
+use that passcode. The Google session remains securely stored on the device so
+passcode-only login can work; removing/revoking that session requires Google
+reauthentication. Inventory remains local to this device, without cloud sync.
+
 **Live app:** <https://28beans.github.io/shelf/>
 
 **Source:** <https://github.com/28BEANS/shelf>
 
 ## How to run it
 
-The project was built with Flutter 3.44.4 and Dart 3.12.2. In a terminal:
+The project was built with Flutter 3.44.4 and Dart 3.12.2. To prepare it:
 
 ```bash
 git clone https://github.com/28BEANS/shelf.git
 cd shelf
 flutter pub get
-flutter run -d chrome
 ```
 
-The app opens to the Shelf entry screen. It does not contact an account server;
-any non-empty email and password opens the local app. No API key or `.env` file
-is needed.
+The project `.env` is ignored by Git. Its `URL` and `PUBLIC_KEY` values are used
+by `tools/run_shelf_visual_device.sh <iPhone device ID>` to build and install
+the separate **Shelf 2.0** app. Never pass the Supabase secret key, database
+password, or connection URI to Flutter. Supabase's Google provider must be
+enabled with a Google Cloud **Web application** OAuth client ID and secret.
+Add the Supabase callback URL shown in that provider's settings to the Google
+client's authorized redirect URIs. Also add
+`app.shelf.inventory.visual://login-callback/` to Supabase Auth's redirect
+allow list. The app opens Google's sign-in page in the browser and returns
+through that redirect after authentication. Use `--build-only` instead of a
+device ID with the script to check signing without installing the app.
 
 To run the iOS app, open `ios/Runner.xcworkspace` in Xcode and select a device.
 Camera and room scanning need a physical iPhone. A simulator can check the
@@ -40,9 +54,8 @@ non-camera screens, but it cannot verify room tracking or camera results.
 4. Move an item to another section, or check it out with a borrower and due
    date. Returning it records the return and keeps the history.
 
-The browser version supports the manual setup, inventory, search and loan flow.
 Camera capture is only available on iOS. Data is stored locally with
-Drift/SQLite; there is no cloud sync or shared login.
+Drift/SQLite; authentication uses Supabase, while inventory has no cloud sync.
 
 ## Screenshots
 
@@ -136,8 +149,8 @@ separately on the iPhone 12 mini.
 
 ## Privacy and security
 
-Shelf stores workspace and inventory records on the device. It does not send
-them to a server. The public repository has no app API key or backend secret;
+Shelf stores workspace and inventory records on the device. Authentication
+contacts Supabase. The public repository contains no backend secret;
 see the [security and privacy notes](docs/06-security-and-privacy.md). The
 [AI usage record](AI-USAGE.md) describes how AI tools were used on the project.
 
@@ -151,11 +164,50 @@ see the [security and privacy notes](docs/06-security-and-privacy.md). The
 
 ## Next
 
-I still need to test RoomPlan on a LiDAR iPhone, find a suitable licensed model
-for automatic storage recognition, exercise barcode and scanner failure cases,
-complete the Chrome walkthrough from a clean start, and record the final demo.
+Google registration, passcode login, logout, and relaunch were verified on an
+iPhone 12 mini on October 3. I still need to find a suitable licensed model
+for automatic storage recognition, exercise
+barcode and scanner failure cases, and record the final demo.
 
 **AI use:** I used ChatGPT Codex throughout planning, implementation, tests and
 documentation. I reviewed its output and made the final calls. See
 [`AI-USAGE.md`](AI-USAGE.md) for the record. Shelf is MIT licensed; see
 [`LICENSE`](LICENSE).
+
+## Shelf 2.0 update — October 4, 2026
+
+The Week 1 and Week 2 screenshots above document earlier increments. The
+current iPhone build uses a non-LiDAR, photo-backed room workflow: capture a
+room, save views, place or move named storage pins, and remove a view after
+moving any pins attached to it. Item photos can accompany OCR suggestions;
+confirm a suggestion or enter a name yourself before saving. The visual room
+is **not** a textured 3D reconstruction, and automatic shelf recognition is
+not validated.
+
+To reproduce the current iPhone build from a new clone, install Flutter 3.44.4,
+Dart 3.12.2, Xcode, and CocoaPods, then run `flutter pub get`. Copy
+`.env.example` to a local `.env` and fill in your Supabase project URL and
+publishable key. Configure Supabase Google Auth with a Google Cloud Web OAuth
+client and the callback/redirect addresses described under **How to run it**.
+Set up a personal Xcode development team and connect an iPhone. Run
+`tools/run_shelf_visual_device.sh <device ID>` to install the separate
+**Shelf 2.0** bundle without replacing Shelf 1. Use `--build-only` to compile
+without installing. The script passes only public Supabase client values into
+the release build; never pass the secret key, database password, or URI.
+
+At first launch, choose Continue with Google, make and confirm a six-digit
+passcode, then return to the login page and unlock. Later launches and the
+in-app **Log out** action ask for that passcode. Workspace and item data remain
+on this device, so a fresh installation on another phone will not synchronize
+them. The linked public web app above is an earlier browser demo; Shelf 2.0's
+Pages deployment waits for its public OAuth configuration and a browser
+sign-in check. Camera scanning must be verified on a physical iPhone.
+
+The current source passed `flutter analyze` and 17 Flutter tests. The owner
+also verified Google registration, passcode relaunch, preserved workspace,
+and the movable 3D login illustration on an iPhone 12 mini. Barcode and
+scanner failure cases, current Shelf 2.0 screenshots, and the final 3–5 minute
+video remain open. See the appended [weekly report](docs/04-weekly-reports.md),
+[visual-scan plan](docs/07-visual-scan-implementation-plan.md),
+[security checklist](SECURITY-CHECKLIST.md), and
+[AI usage record](AI-USAGE.md).
