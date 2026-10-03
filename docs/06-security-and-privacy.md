@@ -67,3 +67,27 @@ The iPhone test used a real room and real equipment labels. I reviewed and
 approved the 12 screenshots in `docs/assets/screenshots/week-02/` for public
 sharing. The copied phone database is still outside this repository. The live
 camera capture shows the manual AR path, not automatic cabinet recognition.
+
+## October 4, 2026 update: Shelf 2.0
+
+The September 27 section above is a historical snapshot. Shelf 2.0 now uses
+Supabase Auth for Google registration. The successful Google session is stored
+on the device so returning users can unlock with a six-digit passcode. The
+**Log out** button locks the app and returns to the passcode page; it does not
+revoke the Supabase session. Account recovery or full session revocation would
+require an additional flow. Workspaces, photo views, items, loans, and scan
+results are still local to the device; Supabase is not used for inventory sync.
+
+The device build sends only the Supabase URL and **publishable** key to Flutter.
+The secret key, database URI, and password in the local ignored `.env` are not
+read into the app. A shipped binary can expose the publishable key, so it must
+never be mistaken for authorization. The existing Google OAuth provider and
+redirect allow list are configured outside the repository. The web deployment
+workflow is gated until public OAuth variables are supplied. It has not been
+used to verify the new sign-in flow in a public web build.
+
+Local inventory files are protected by the operating system's app sandbox and
+Shelf's passcode UI, but Shelf does not encrypt its SQLite database or photo
+files itself. A compromised/unlocked device may expose them. The current
+[25-point security checklist](../SECURITY-CHECKLIST.md) records this and other
+remaining checks without treating them as complete.
