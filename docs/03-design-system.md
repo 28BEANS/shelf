@@ -119,3 +119,18 @@ and lime controls.
 - **September 20, 2026:** Turned the four-point spacing grid into named
   `AppSpacing` tokens and documented the first reusable widget contracts so UI
   work can proceed consistently in week one.
+
+## October 3 visual update
+
+The Shelf 2.0 login keeps the warm canvas, lavender card, lime/mint accents,
+near-black text, and Plus Jakarta Sans hierarchy. Its new isolated 3D-style
+storage illustration is the one intentional departure from the flat
+illustration guidance above. The image sits directly on the lavender card
+without an inner black frame, responds to touch with a restrained shift and
+tilt, and remains still when Reduce Motion is enabled. The entry animation
+does not move the surrounding instructions or action button.
+
+The iOS icon now renders the same three-bar mark and palette as the in-app
+brand. Saved room photos and item photos are user content, not replacement
+brand illustrations; their labels distinguish real capture from the
+decorative login art.

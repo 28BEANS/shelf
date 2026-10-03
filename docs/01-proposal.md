@@ -108,3 +108,19 @@ for the semester MVP, so separate installations do not share data.
   when available. Manual entry remains a fallback, while sample scans no
   longer count as completed scanning. This supersedes the earlier assumption
   that a custom storage detector was outside the MVP.
+
+## October 3 scope record
+
+Shelf 2.0 now targets the iPhone 12 mini and other non-LiDAR iPhones. The
+RoomPlan branch and LiDAR testing described above are historical proposals,
+not current deliverables. The saved room representation is a set of camera
+photo views with named storage pins. It is not a textured 3D model, and
+automatic recognition of cabinets or shelves remains unavailable without a
+validated detector.
+
+The current app also adds Supabase Google registration followed by a local
+six-digit passcode. Later access on the same device uses the passcode while
+the Google session remains stored in the iOS Keychain. Inventory still lives
+only in the device database; there is no multi-device synchronization. This
+scope change does not turn the earlier untested detector, barcode, or
+reconstruction goals into completed features.

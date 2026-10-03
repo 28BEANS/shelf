@@ -22,6 +22,9 @@ build/
 *.mov
 raw-*.mp4
 
+# User-supplied visual research references without confirmed redistribution rights
+docs/assets/workflow-references/
+
 # OS and editor
 .DS_Store
 Thumbs.db

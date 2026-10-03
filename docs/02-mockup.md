@@ -192,3 +192,19 @@ movement history available for accountability.
 Compares a new room scan with existing logical containers, shows match confidence,
 and lets the administrator keep a match or choose a different container. This is
 planned after the core inventory path.
+
+## October 3 implementation notes
+
+The mockups remain the reference for color, spacing, typography, and clear
+primary actions. The current iPhone login uses Google registration and a
+six-digit passcode in place of the mockup's email/password form. Its storage
+illustration is a generated 3D-style image that tilts when touched; it is
+decorative and does not represent a room scan.
+
+The saved workspace opens photo views of an actual captured room. A person can
+add, move, edit, or remove a storage pin; a view can be removed only after its
+pins move elsewhere. The screen labels this as a photo view because the
+non-LiDAR build does not reconstruct a textured room model. The original
+mockup's model-oriented Rescan and Remap remains a longer-term target;
+current rescans preserve logical inventory IDs but do not automatically
+remap a textured model.

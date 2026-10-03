@@ -13,6 +13,7 @@ folder is half of what gets read.
 | [04-weekly-reports.md](04-weekly-reports.md) | one short entry per week, added as you go |
 | [05-demo-video.md](05-demo-video.md) | the recording and what it shows |
 | [06-security-and-privacy.md](06-security-and-privacy.md) | the checklist, filled in and dated |
+| [07-visual-scan-implementation-plan.md](07-visual-scan-implementation-plan.md) | proposed visual room, tap-to-label, and photo-backed item scanning workflow with image references |
 | `assets/` | mockup screens, design-system visuals, and reference PDFs |
 
 Two rules:
@@ -31,3 +32,16 @@ Two rules:
 The visual references used by the documentation are stored in `assets/mockup/`
 and `assets/design-system/`. The demo-video document is intentionally left as a
 recording checklist until the final demonstration is available.
+
+## October 3 documentation status
+
+The original proposal and mockup sections remain available as historical
+planning records. Each received an appended implementation note for the
+non-LiDAR Shelf 2.0 scope. The visual-scan plan distinguishes the desired
+textured model from the shipped saved-photo view. The repository root also
+contains a dated security checklist based on the course template and an AI
+usage record with links to the feature commits.
+
+The Week 2 screenshots are real iPhone test evidence for that earlier
+increment. Current Shelf 2.0 login and room-photo screenshots still need
+to be captured and reviewed before being added publicly.

@@ -1,5 +1,15 @@
 # Shelf: three-week development plan
 
+**October 3 scope change:** The active Shelf 2.0 implementation focuses on the
+non-LiDAR iPhone workflow. The RoomPlan/LiDAR tasks below are superseded and
+should not be implemented. The visual room experience currently uses saved
+photo views and movable storage pins; a textured 3D reconstruction remains
+unvalidated. Add a remove action for saved room views. Replace the preview
+email/password entry with Supabase-backed Google-only registration, followed by
+a six-digit passcode and return to login. Returning users unlock with the
+passcode alone; the in-app logout action returns to the passcode login screen.
+Keep inventory local until a separate sync requirement is agreed.
+
 Prepared September 20, 2026; revised September 26 after the request for real iOS scanning and a complete MVP workflow in week 2. This is a forward-looking checklist. Completed work is recorded separately in the weekly reports.
 
 September 20, September 27, and October 4 are treated as the starts of weeks 1, 2, and 3. The final week runs October 4–10, consistent with the existing weekly reports. October 4 is the start of final integration; October 10 is the proposed completion target, not a confirmed submission deadline.
@@ -141,3 +151,14 @@ Choose one checklist task per work session. Finish it, verify the affected flow,
 - [Apple RoomPlan support](https://developer.apple.com/documentation/roomplan/roomcapturesession/issupported), [ARKit world tracking and plane classification](https://developer.apple.com/documentation/arkit/arworldtrackingconfiguration), and [Vision/Core ML requests](https://developer.apple.com/documentation/vision/vncoremlrequest): capability and model requirements to check during implementation.
 
 The mockup remains the visual and interaction reference. The September 26 request revises the earlier proposal's scope: the real non-LiDAR detector and complete checkout/return lifecycle are now required for week 2, while QR/remapping remain optional. The earlier proposal's “custom model out of scope” and “manual fallback is enough for the MVP” assumptions no longer apply. Completed-work reports remain factual; this revised plan does not turn planned scanning into a completed result.
+
+
+## October 4 opening status
+
+The final-week work begins with the non-LiDAR photo-view implementation, Google
+account entry, passcode unlock, and branded login motion already present in
+Shelf 2.0. The Week 2 LiDAR table above is retained as historical planning
+context and is superseded by the October 3 scope change. Remaining work is to
+exercise scanner failure cases and barcode input, capture fresh Shelf 2.0
+screenshots, and record the demonstration. A textured room reconstruction is
+not part of the validated build.
