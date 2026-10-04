@@ -76,39 +76,24 @@ sign-in path has not yet been verified.
 
 ## Screenshots
 
-I captured these 12 Week 2 screens on my iPhone 12 mini on September 27. They
-show the saved inventory, item review, search, setup and loan screens, plus the
-live AR camera view. I checked this set and approved it for public sharing.
+These iPhone screenshots show the current Shelf 2.0 sign-in and inventory flow.
+The live AR camera scan is retained from the earlier room-scanning build.
 
-| Spaces home | Container sections | Item details |
+| Passcode unlock | Google registration | Launch screen |
 | --- | --- | --- |
-| ![Spaces home](docs/assets/screenshots/week-02/01-spaces-home.png) | ![Container sections](docs/assets/screenshots/week-02/02-container-sections.png) | ![Item details](docs/assets/screenshots/week-02/03-item-details.png) |
+| ![Shelf passcode unlock](docs/assets/screenshots/IMG_4110.PNG) | ![Shelf Google registration](docs/assets/screenshots/IMG_4111.PNG) | ![Shelf launch screen](docs/assets/screenshots/IMG_4113.PNG) |
 
-| Camera item review | Choose layout | Add inventory |
+| Spaces home | Add inventory | Saved room photo view |
 | --- | --- | --- |
-| ![Camera item review](docs/assets/screenshots/week-02/04-camera-item-review.png) | ![Choose layout](docs/assets/screenshots/week-02/05-layout-selection.png) | ![Add inventory](docs/assets/screenshots/week-02/06-add-inventory.png) |
+| ![Spaces home](docs/assets/screenshots/IMG_4114.PNG) | ![Add inventory](docs/assets/screenshots/IMG_4115.PNG) | ![Saved room photo view](docs/assets/screenshots/IMG_4116.PNG) |
 
-| Inventory search | Storage review | Edit container |
+| Container sections | Item details | Check out item |
 | --- | --- | --- |
-| ![Inventory search](docs/assets/screenshots/week-02/07-inventory-search.png) | ![Storage review](docs/assets/screenshots/week-02/08-storage-review.png) | ![Edit container](docs/assets/screenshots/week-02/09-edit-container.png) |
+| ![Container sections](docs/assets/screenshots/IMG_4117.PNG) | ![Item details](docs/assets/screenshots/IMG_4118.PNG) | ![Check out item](docs/assets/screenshots/IMG_4119.PNG) |
 
-| Scan workspace | Check out item | Live AR camera scan |
-| --- | --- | --- |
-| ![Scan workspace](docs/assets/screenshots/week-02/10-scan-workspace-preview.png) | ![Check out item](docs/assets/screenshots/week-02/11-checkout-item.png) | ![Live AR camera scan](docs/assets/screenshots/week-02/12-live-camera-ar-scan.png) |
-
-The earlier Week 1 screens show the entry, home, search and first setup flow:
-
-| Entry | Home | Add inventory |
-| --- | --- | --- |
-| ![Shelf entry screen](docs/assets/screenshots/01-sign-in.png) | ![Workspace home](docs/assets/screenshots/02-spaces.png) | ![Add inventory](docs/assets/screenshots/03-add-inventory.png) |
-
-| Search | Room scan | Review detected spaces |
-| --- | --- | --- |
-| ![Search screen](docs/assets/screenshots/04-search.png) | ![Room scanning screen](docs/assets/screenshots/05-room-scan.png) | ![Detected spaces](docs/assets/screenshots/06-detected-spaces.png) |
-
-| Choose layout | Select section | Review item suggestions |
-| --- | --- | --- |
-| ![Layout selection](docs/assets/screenshots/07-choose-layout.png) | ![Section selection](docs/assets/screenshots/08-select-section.png) | ![Item review](docs/assets/screenshots/09-review-items.png) |
+| Inventory search | Live AR camera scan (earlier build) |
+| --- | --- |
+| ![Inventory search](docs/assets/screenshots/IMG_4120.PNG) | ![Live AR camera scan from the earlier build](docs/assets/screenshots/week-02/12-live-camera-ar-scan.png) |
 
 ## Current limits and next steps
 
@@ -119,11 +104,9 @@ Shelf 2.0 room experience is photo-backed and does not use LiDAR or produce a
 textured 3D model. OCR needs human review. Barcode capture, scanner failure
 cases, and a full write-path validation audit remain open.
 
-The gallery above documents Weeks 1 and 2. Current Shelf 2.0 login, launch,
-and room-photo screens have not yet been captured and reviewed for publication,
-so the one-current-screenshot-per-screen documentation criterion is still
-incomplete. The final demo video, slides, and square image also remain open.
-The public Pages build still shows the earlier browser demo.
+The gallery above includes current Shelf 2.0 screens and one earlier live AR
+camera image. The final demo video, slides, and square image remain open. The
+public Pages build still shows the earlier browser demo.
 
 ## Project structure
 
