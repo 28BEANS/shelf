@@ -56,3 +56,18 @@ the signed Shelf 2.0 iPhone app, blur account details, and show these steps:
 The course rubric also calls for a slide deck, a square title image, and a
 public Google Drive link for the video. Those deliverables are not represented
 as completed here.
+
+## Replaying Google registration in Shelf 2.0
+
+The separate Shelf 2.0 presentation build includes **REPLAY SIGN-IN DEMO** on
+Your Spaces. Unlock the app, tap that button, read the confirmation, and tap
+**RESTART SIGN-IN**. Shelf clears this device's saved Google session and
+six-digit passcode, then returns to **Continue with Google**. Use the **same**
+Google account, choose a new passcode, and unlock to show that the workspace,
+room views, and items are still present. The Google user record in Supabase is
+not deleted. Shelf keeps its local account binding, so a different Google
+account cannot open the existing workspace through this demo reset.
+
+This action is enabled only in the separate presentation build with
+`SHELF_ENABLE_DEMO_RESET=true`; the ordinary app build does not show it. Reset
+before recording if you want the Google step to be the first thing viewers see.

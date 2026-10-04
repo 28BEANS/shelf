@@ -15,6 +15,7 @@ abstract class ShelfAuthGateway {
   Future<void> createPasscode(String passcode);
   Future<bool> unlock(String passcode);
   Future<void> logout();
+  Future<void> restartSignInDemo();
 }
 
 /// Stores the Supabase refresh session in Keychain/Keystore, not preferences.
@@ -181,6 +182,27 @@ class SupabaseShelfAuth implements ShelfAuthGateway {
   /// Lock this device and keep the Google-backed session for PIN-only return.
   @override
   Future<void> logout() async {}
+
+  /// Replay sign-in without deleting the Supabase user or local inventory.
+  /// Keep the bound user ID so a different Google account cannot open the
+  /// workspace after the demo reset.
+  @override
+  Future<void> restartSignInDemo() async {
+    if (await _storage.read(key: _userKey) == null) {
+      throw StateError('Finish Google registration before restarting sign-in.');
+    }
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {
+      // The SDK clears its in-memory session before contacting the server.
+      // An offline sign-out can still complete the local presentation reset.
+      if (_client.auth.currentSession != null) rethrow;
+    }
+    await const ShelfSessionStorage().removePersistedSession();
+    await _storage.delete(key: _pinKey);
+    await _storage.delete(key: _attemptKey);
+    await _storage.delete(key: _cooldownKey);
+  }
 
   Future<List<int>> _hash(String passcode, List<int> salt) async =>
       (await _pbkdf2.deriveKeyFromPassword(

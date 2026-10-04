@@ -162,3 +162,12 @@ context and is superseded by the October 3 scope change. Remaining work is to
 exercise scanner failure cases and barcode input, capture fresh Shelf 2.0
 screenshots, and record the demonstration. A textured room reconstruction is
 not part of the validated build.
+
+## October 4 presentation sign-in replay
+
+Shelf 2.0 needs a controlled way to demonstrate Google registration again
+without deleting the Supabase user or losing the local workspace. The separate
+presentation build exposes a confirmed reset after passcode unlock. It clears
+the local Google session and passcode but retains the bound Google user ID;
+only the same account can reopen the saved inventory. The ordinary app build
+does not expose this presentation action.

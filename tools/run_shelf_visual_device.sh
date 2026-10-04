@@ -42,6 +42,10 @@ rsync -a \
   --exclude='.git/' \
   --exclude='build/' \
   --exclude='.dart_tool/' \
+  --exclude='.codex-*/' \
+  --exclude='deliverables/' \
+  --exclude='docs/' \
+  --exclude='plans/' \
   --exclude='ios/Flutter/ephemeral/' \
   --exclude='ios/Pods/' \
   --exclude='ios/.symlinks/' \
@@ -80,8 +84,9 @@ PY
 echo "Building Shelf 2.0 from $build_root"
 cd "$build_root"
 flutter pub get
-flutter build ios --release --build-name=2.0.0 --build-number=5 \
-  --dart-define-from-file="$build_root/public_env.json"
+flutter build ios --release --build-name=2.0.0 --build-number=6 \
+  --dart-define-from-file="$build_root/public_env.json" \
+  --dart-define=SHELF_ENABLE_DEMO_RESET=true
 if [[ "$build_only" == true ]]; then
   echo "Signed Shelf 2.0 build: $build_root/build/ios/iphoneos/Runner.app"
   exit 0

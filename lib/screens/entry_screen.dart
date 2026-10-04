@@ -12,9 +12,14 @@ import '../widgets/shelf_loading_animation.dart';
 import 'shell_screen.dart';
 
 class EntryScreen extends StatefulWidget {
-  const EntryScreen({super.key, this.authGateway});
+  const EntryScreen({
+    super.key,
+    this.authGateway,
+    this.enableDemoReset = false,
+  });
 
   final ShelfAuthGateway? authGateway;
+  final bool enableDemoReset;
 
   @override
   State<EntryScreen> createState() => _EntryScreenState();
@@ -148,6 +153,18 @@ class _EntryScreenState extends State<EntryScreen> {
     }
   });
 
+  Future<void> _restartSignInDemo() async {
+    await _auth!.restartSignInDemo();
+    if (!mounted) return;
+    setState(() {
+      _unlocked = false;
+      _step = ShelfAuthStep.register;
+      _pin.clear();
+      _confirm.clear();
+      _error = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_startupComplete) {
@@ -161,7 +178,12 @@ class _EntryScreenState extends State<EntryScreen> {
         ),
       );
     }
-    if (_unlocked) return ShelfShell(onLogout: _logout);
+    if (_unlocked) {
+      return ShelfShell(
+        onLogout: _logout,
+        onRestartSignInDemo: widget.enableDemoReset ? _restartSignInDemo : null,
+      );
+    }
     return Scaffold(
       body: ShelfMobileRail(
         child: SafeArea(

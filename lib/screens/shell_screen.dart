@@ -17,9 +17,14 @@ import 'room_photo_screen.dart';
 import 'setup_flow_screen.dart';
 
 class ShelfShell extends ConsumerStatefulWidget {
-  const ShelfShell({super.key, required this.onLogout});
+  const ShelfShell({
+    super.key,
+    required this.onLogout,
+    this.onRestartSignInDemo,
+  });
 
   final VoidCallback onLogout;
+  final Future<void> Function()? onRestartSignInDemo;
 
   @override
   ConsumerState<ShelfShell> createState() => _ShelfShellState();
@@ -131,6 +136,7 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
         onScan: () => setState(() => _index = 1),
         onRescan: () => _openSetup(rescanExisting: true),
         onLogout: widget.onLogout,
+        onRestartSignInDemo: widget.onRestartSignInDemo,
       ),
       _ScanPage(
         onScan: () => _openSetup(),
@@ -192,10 +198,49 @@ class _HomePage extends ConsumerWidget {
     required this.onScan,
     required this.onRescan,
     required this.onLogout,
+    this.onRestartSignInDemo,
   });
   final VoidCallback onScan;
   final VoidCallback onRescan;
   final VoidCallback onLogout;
+  final Future<void> Function()? onRestartSignInDemo;
+
+  Future<void> _confirmRestartSignInDemo(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Replay Google sign-in?'),
+        content: const Text(
+          'Shelf will remove the saved session and passcode from this device. '
+          'Your workspace, room views, and items will stay. Use the same '
+          'Google account and choose a new passcode to reopen them.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            key: const Key('confirm-demo-reset'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('RESTART SIGN-IN'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await onRestartSignInDemo!();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not restart sign-in. Please try again.'),
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -225,6 +270,18 @@ class _HomePage extends ConsumerWidget {
             label: const Text('LOG OUT'),
           ),
         ),
+        if (onRestartSignInDemo != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              key: const Key('restart-sign-in-demo'),
+              onPressed: () => _confirmRestartSignInDemo(context),
+              icon: const Icon(Icons.replay),
+              label: const Text('REPLAY SIGN-IN DEMO'),
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         if (state.workspace != null && state.containers.isNotEmpty)
           HardShadowCard(

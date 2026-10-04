@@ -6,9 +6,16 @@ import 'services/shelf_auth.dart';
 import 'theme.dart';
 
 class ShelfApp extends StatelessWidget {
-  const ShelfApp({super.key, this.authGateway});
+  const ShelfApp({
+    super.key,
+    this.authGateway,
+    this.enableDemoReset = const bool.fromEnvironment(
+      'SHELF_ENABLE_DEMO_RESET',
+    ),
+  });
 
   final ShelfAuthGateway? authGateway;
+  final bool enableDemoReset;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +25,10 @@ class ShelfApp extends StatelessWidget {
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
       theme: shelfTheme,
-      home: EntryScreen(authGateway: authGateway),
+      home: EntryScreen(
+        authGateway: authGateway,
+        enableDemoReset: enableDemoReset,
+      ),
     );
   }
 }

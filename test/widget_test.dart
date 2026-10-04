@@ -44,6 +44,7 @@ void main() {
 
     expect(find.text('Your Spaces'), findsOneWidget);
     expect(find.text('No spaces yet'), findsOneWidget);
+    expect(find.byKey(const Key('restart-sign-in-demo')), findsNothing);
   });
 
   testWidgets('login requires six digits', (tester) async {
@@ -67,6 +68,64 @@ void main() {
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.byKey(const Key('passcode')), findsOneWidget);
     expect(find.text('Your Spaces'), findsNothing);
+  });
+
+  testWidgets('demo reset replays Google and keeps local workspace', (
+    tester,
+  ) async {
+    _phoneViewport(tester);
+    final repository = InventoryRepository(database);
+    final workspaceId = await repository.saveWorkspace('Presentation Room', '');
+    await repository.saveContainer(
+      const ShelfContainer(
+        id: 'demo-cabinet',
+        name: 'Demo Cabinet',
+        type: 'Cabinet',
+      ),
+      workspaceId,
+    );
+    final auth = _TestAuth();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [databaseProvider.overrideWithValue(database)],
+        child: ShelfApp(authGateway: auth, enableDemoReset: true),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pumpAndSettle();
+    await _signIn(tester);
+    expect(find.text('Presentation Room'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('restart-sign-in-demo')));
+    await tester.pumpAndSettle();
+    expect(find.text('Replay Google sign-in?'), findsOneWidget);
+    await tester.tap(find.text('CANCEL'));
+    await tester.pumpAndSettle();
+    expect(auth.demoResets, 0);
+
+    await tester.tap(find.byKey(const Key('restart-sign-in-demo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-demo-reset')));
+    await tester.pumpAndSettle();
+    expect(auth.demoResets, 1);
+    expect(find.text('Create your account'), findsOneWidget);
+    expect(find.text('Presentation Room'), findsNothing);
+
+    await tester.ensureVisible(find.byKey(const Key('enter-shelf')));
+    await tester.tap(find.byKey(const Key('enter-shelf')));
+    await tester.pumpAndSettle();
+    expect(find.text('Secure this device'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('passcode')), '123456');
+    await tester.enterText(find.byKey(const Key('confirm-passcode')), '123456');
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('enter-shelf')));
+    await tester.tap(find.byKey(const Key('enter-shelf')));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome back'), findsOneWidget);
+    await _signIn(tester);
+    expect(find.text('Presentation Room'), findsOneWidget);
+    expect((await repository.load()).workspace?.name, 'Presentation Room');
   });
 
   testWidgets('Google registration saves PIN then returns to login', (
@@ -290,6 +349,7 @@ Future<void> _signIn(WidgetTester tester) async {
 class _TestAuth implements ShelfAuthGateway {
   _TestAuth({this.initial = ShelfAuthStep.login});
   final ShelfAuthStep initial;
+  int demoResets = 0;
   @override
   Future<ShelfAuthStep> initialStep() async => initial;
   @override
@@ -301,4 +361,8 @@ class _TestAuth implements ShelfAuthGateway {
   Future<bool> unlock(String passcode) async => passcode == '123456';
   @override
   Future<void> logout() async {}
+  @override
+  Future<void> restartSignInDemo() async {
+    demoResets++;
+  }
 }
