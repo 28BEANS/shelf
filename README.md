@@ -2,60 +2,77 @@
 
 [![Made with AI](https://img.shields.io/badge/Made_with-AI_assistance-blue)](AI-USAGE.md)
 
-Shelf is a local inventory app for a shared equipment room. It saves the room's
-storage layout and items on the device, so a team can search for equipment,
-check it out, move it, and return it to its home section.
-
-The current Shelf 2.0 development build uses Supabase Auth for Google-only
-registration. After registration, the user creates a six-digit device passcode
-and returns to the login page. Later openings and the in-app **Log out** action
-use that passcode. The Google session remains securely stored on the device so
-passcode-only login can work; removing/revoking that session requires Google
-reauthentication. Inventory remains local to this device, without cloud sync.
-
-**Live app:** <https://28beans.github.io/shelf/>
+Shelf is an iPhone inventory app for a shared equipment room. It keeps room
+views, storage locations, items, moves, and loans on one device so a user can
+find equipment and return it to its home section. The current Shelf 2.0 build
+uses Google registration through Supabase Auth and a six-digit passcode for
+returning to that device; inventory is not synced to Supabase.
 
 **Source:** <https://github.com/28BEANS/shelf>
+**Public browser demo:** <https://28beans.github.io/shelf/> — the earlier
+manual-flow build. The current Google sign-in version has not been verified on
+Pages, and the workflow is gated until public OAuth setup and a browser check
+are complete.
 
-## How to run it
+## Setup and installation
 
-The project was built with Flutter 3.44.4 and Dart 3.12.2. To prepare it:
+I built this version with Flutter 3.44.4 and Dart 3.12.2. The iPhone build also
+needs Xcode, CocoaPods, a personal Xcode development team, and a physical iPhone
+for camera scanning.
 
 ```bash
 git clone https://github.com/28BEANS/shelf.git
 cd shelf
 flutter pub get
+cp .env.example .env
 ```
 
-The project `.env` is ignored by Git. Its `URL` and `PUBLIC_KEY` values are used
-by `tools/run_shelf_visual_device.sh <iPhone device ID>` to build and install
-the separate **Shelf 2.0** app. Never pass the Supabase secret key, database
-password, or connection URI to Flutter. Supabase's Google provider must be
-enabled with a Google Cloud **Web application** OAuth client ID and secret.
-Add the Supabase callback URL shown in that provider's settings to the Google
-client's authorized redirect URIs. Also add
+Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in the ignored `.env`.
+The device build script also accepts `URL` and `PUBLIC_KEY`. Use only the
+publishable client key; never put the Supabase secret key, database password, or
+connection URI in Flutter or Git. In Supabase, enable Google Auth with a Google
+Cloud Web application OAuth client. Add the callback URL shown by Supabase to
+the Google client's authorized redirect URIs, and add
 `app.shelf.inventory.visual://login-callback/` to Supabase Auth's redirect
-allow list. The app opens Google's sign-in page in the browser and returns
-through that redirect after authentication. Use `--build-only` instead of a
-device ID with the script to check signing without installing the app.
+allow list. These settings live outside this repository.
 
-To run the iOS app, open `ios/Runner.xcworkspace` in Xcode and select a device.
-Camera and room scanning need a physical iPhone. A simulator can check the
-non-camera screens, but it cannot verify room tracking or camera results.
+## How to run it
 
-## What you can do
+Connect an iPhone with Developer Mode and configure Xcode signing. Find its
+device ID with `flutter devices`, then install the separate Shelf 2.0 bundle:
 
-1. Create a local workspace and add or scan storage containers. Review room
-   results, rename them, choose a layout and edit the sections.
-2. Select a section, add an item manually or capture a label on iPhone. OCR
-   results become suggestions; review or edit them before confirming inventory.
-3. Search for an item by its name, model, identifier, category or location.
-   Open its details to see its current and home section.
-4. Move an item to another section, or check it out with a borrower and due
-   date. Returning it records the return and keeps the history.
+```bash
+tools/run_shelf_visual_device.sh <iPhone-device-ID>
+```
 
-Camera capture is only available on iOS. Data is stored locally with
-Drift/SQLite; authentication uses Supabase, while inventory has no cloud sync.
+Use `tools/run_shelf_visual_device.sh --build-only` for a signed build without
+installation. The script creates a temporary copy with a distinct bundle ID,
+so the original Shelf installation remains separate. On first launch, choose
+**Continue with Google**, create and confirm a six-digit passcode, then unlock.
+Later launches and **Log out** return to the passcode screen. **Log out** locks
+the app; it does not revoke the stored Google session.
+
+A simulator can show non-camera screens but cannot verify room tracking or
+camera results. The public browser link is the earlier manual demo. A fresh
+local Chrome run of this source needs public OAuth values passed as Dart
+defines and working web redirect configuration; that complete browser
+sign-in path has not yet been verified.
+
+## Features and usage
+
+1. Register with Google, set the device passcode, and unlock the local workspace.
+2. Create a workspace. Capture room photos on iPhone or use the manual setup
+   route. Review observations, name storage containers, choose layouts, and
+   adjust sections before saving.
+3. Open a saved room photo view to place or move storage pins. Move pins off a
+   view before deleting that photo. The view is a labelled image, not a textured
+   3D room model.
+4. Add an item to a section manually, or capture an item photo and review/edit
+   the OCR suggestion before accepting it.
+5. Search by item, model, identifier, category, or location. Item details show
+   both current and home sections.
+6. Move an item, check it out with borrower and due date, or return it. Shelf
+   keeps movement and loan history in local Drift/SQLite records.
 
 ## Screenshots
 
@@ -93,121 +110,51 @@ The earlier Week 1 screens show the entry, home, search and first setup flow:
 | --- | --- | --- |
 | ![Layout selection](docs/assets/screenshots/07-choose-layout.png) | ![Section selection](docs/assets/screenshots/08-select-section.png) | ![Item review](docs/assets/screenshots/09-review-items.png) |
 
-## What I built this week
+## Current limits and next steps
 
-Week 2 connected the screens to a local database for workspaces, scans,
-containers, sections, items, loans, candidates and item moves. Closing and
-reopening the app keeps the saved inventory. The review screen only saves
-accepted suggestions, and moving an item keeps its original home location.
+The iPhone 12 mini test confirmed a real camera feed, room-plane tracking,
+manual storage marks, OCR suggestions, saved items, and retained data after
+relaunch. It did not establish automatic shelf/cabinet recognition. The active
+Shelf 2.0 room experience is photo-backed and does not use LiDAR or produce a
+textured 3D model. OCR needs human review. Barcode capture, scanner failure
+cases, and a full write-path validation audit remain open.
 
-I also tested the iOS ARKit path on an iPhone 12 mini. It tracked a room plane
-and let me mark storage by hand. Camera OCR produced item suggestions that I
-reviewed and corrected before saving. I checked checkout, return, move and data
-after relaunch on that phone.
-
-## Scan limits
-
-The iPhone 12 mini test confirms room-plane tracking and manual spatial marks;
-it does not confirm automatic recognition of cabinets or shelves. The app has
-no suitable licensed storage-detection model bundled, so that feature remains
-unavailable. RoomPlan has not been tested on a physical LiDAR iPhone. OCR names
-were imperfect and needed correction. Barcode capture and scan failure cases
-still need testing.
-
-On Chrome, camera scanning is unavailable and the manual flow is the usable
-route. Do not treat the browser demo as scanner evidence.
+The gallery above documents Weeks 1 and 2. Current Shelf 2.0 login, launch,
+and room-photo screens have not yet been captured and reviewed for publication,
+so the one-current-screenshot-per-screen documentation criterion is still
+incomplete. The final demo video, slides, and square image also remain open.
+The public Pages build still shows the earlier browser demo.
 
 ## Project structure
 
 ```text
 lib/
-├── main.dart                 # app entry point
-├── app.dart                  # app setup and local database providers
-├── theme.dart                # Shelf colors, type and widget styles
+├── main.dart                 # Supabase initialization and app entry
+├── app.dart                  # app setup and database providers
+├── theme.dart                # colors, typography, and shared styles
 ├── data/                     # Drift schema and inventory repository
-├── models/                   # workspace and inventory records
-├── screens/                  # entry, setup, search, item, move and loan screens
-├── services/                 # iOS scanner bridge and scan results
-├── state/                    # Riverpod providers and local state
-└── widgets/                  # reusable Shelf controls and navigation
+├── models/                   # workspace, scan, item, and loan records
+├── screens/                  # entry, setup, photo view, inventory, and loans
+├── services/                 # Google/passcode auth and iOS scan bridge
+├── state/                    # Riverpod providers and setup state
+└── widgets/                  # reusable controls, images, and navigation
 ```
 
-## Checks
+## Verification and project records
 
-The Week 2 code was checked with:
+The source was checked on October 4 with `flutter analyze`, 17 Flutter
+tests, and a release web build. The owner verified Google registration,
+passcode unlock after relaunch, retained workspace, and the illustration drag
+response on an iPhone 12 mini. The web build check is not an OAuth browser
+test.
 
-```bash
-flutter analyze
-flutter test
-flutter build web --release
-flutter build ios --simulator --no-codesign
-```
+- [Week 3 implementation report](docs/04-weekly-reports.md)
+- [Security checklist](SECURITY-CHECKLIST.md) and [privacy notes](docs/06-security-and-privacy.md)
+- [Proposal](docs/01-proposal.md), [mockup](docs/02-mockup.md), and [design system](docs/03-design-system.md)
+- [Visual scan scope and remaining work](docs/07-visual-scan-implementation-plan.md)
 
-All 10 automated tests passed, static analysis found no issues, and both web and
-iOS simulator builds succeeded. The physical-device results above were checked
-separately on the iPhone 12 mini.
-
-## Privacy and security
-
-Shelf stores workspace and inventory records on the device. Authentication
-contacts Supabase. The public repository contains no backend secret;
-see the [security and privacy notes](docs/06-security-and-privacy.md). The
-[AI usage record](AI-USAGE.md) describes how AI tools were used on the project.
-
-## More project notes
-
-- [Proposal and scope](docs/01-proposal.md)
-- [Mockup and screen flow](docs/02-mockup.md)
-- [Design system](docs/03-design-system.md)
-- [Weekly project reports](docs/04-weekly-reports.md)
-- [Security and privacy](docs/06-security-and-privacy.md)
-
-## Next
-
-Google registration, passcode login, logout, and relaunch were verified on an
-iPhone 12 mini on October 3. I still need to find a suitable licensed model
-for automatic storage recognition, exercise
-barcode and scanner failure cases, and record the final demo.
-
-**AI use:** I used ChatGPT Codex throughout planning, implementation, tests and
-documentation. I reviewed its output and made the final calls. See
-[`AI-USAGE.md`](AI-USAGE.md) for the record. Shelf is MIT licensed; see
-[`LICENSE`](LICENSE).
-
-## Shelf 2.0 update — October 4, 2026
-
-The Week 1 and Week 2 screenshots above document earlier increments. The
-current iPhone build uses a non-LiDAR, photo-backed room workflow: capture a
-room, save views, place or move named storage pins, and remove a view after
-moving any pins attached to it. Item photos can accompany OCR suggestions;
-confirm a suggestion or enter a name yourself before saving. The visual room
-is **not** a textured 3D reconstruction, and automatic shelf recognition is
-not validated.
-
-To reproduce the current iPhone build from a new clone, install Flutter 3.44.4,
-Dart 3.12.2, Xcode, and CocoaPods, then run `flutter pub get`. Copy
-`.env.example` to a local `.env` and fill in your Supabase project URL and
-publishable key. Configure Supabase Google Auth with a Google Cloud Web OAuth
-client and the callback/redirect addresses described under **How to run it**.
-Set up a personal Xcode development team and connect an iPhone. Run
-`tools/run_shelf_visual_device.sh <device ID>` to install the separate
-**Shelf 2.0** bundle without replacing Shelf 1. Use `--build-only` to compile
-without installing. The script passes only public Supabase client values into
-the release build; never pass the secret key, database password, or URI.
-
-At first launch, choose Continue with Google, make and confirm a six-digit
-passcode, then return to the login page and unlock. Later launches and the
-in-app **Log out** action ask for that passcode. Workspace and item data remain
-on this device, so a fresh installation on another phone will not synchronize
-them. The linked public web app above is an earlier browser demo; Shelf 2.0's
-Pages deployment waits for its public OAuth configuration and a browser
-sign-in check. Camera scanning must be verified on a physical iPhone.
-
-The current source passed `flutter analyze` and 17 Flutter tests. The owner
-also verified Google registration, passcode relaunch, preserved workspace,
-and the movable 3D login illustration on an iPhone 12 mini. Barcode and
-scanner failure cases, current Shelf 2.0 screenshots, and the final 3–5 minute
-video remain open. See the appended [weekly report](docs/04-weekly-reports.md),
-[visual-scan plan](docs/07-visual-scan-implementation-plan.md),
-[security checklist](SECURITY-CHECKLIST.md), and
-[AI usage record](AI-USAGE.md).
+**AI use:** I used ChatGPT Codex extensively for implementation, tests, and
+documentation, plus image generation for the login artwork. I set the
+requirements, reviewed the results, and tested the device flow. The
+[AI usage record](AI-USAGE.md) gives feature commits, mistakes, and authorship
+details. Shelf is MIT licensed; see [LICENSE](LICENSE).

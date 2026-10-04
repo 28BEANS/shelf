@@ -1,5 +1,7 @@
 # Security checklist — 2026-10-04
 
+**Audit target:** [28BEANS/shelf](https://github.com/28BEANS/shelf), including its tracked files and Git history.
+
 This checklist uses the course template. Shelf 2.0 uses Supabase Auth for Google sign-in, while workspace, room photos, inventory, and loans remain on the iPhone. A publishable Supabase key is public client configuration, not an administrator key.
 
 ## Secrets and credentials
@@ -46,7 +48,7 @@ This checklist uses the course template. Shelf 2.0 uses Supabase Auth for Google
 
 | # | Check | Answer | Evidence |
 | --- | --- | --- | --- |
-| 21 | No personal identifier in repo or commit messages | Yes | Tracked text and recent commits were reviewed for personal email, phone, student number, and home address; none found. |
+| 21 | No student number, personal email, phone number or home address in repository or commit messages | No | The current identifier is generic, but an older iOS bundle identifier containing my name remains visible in Git history in the change at `54c2e76`. I found no student number, phone number or home address in tracked project files. |
 | 22 | No classmate personal data | Yes | App fixtures and published screenshots do not contain classmate information. |
 | 23 | Dependencies sourced normally; generated files ignored | Yes | Flutter packages are declared in `pubspec.yaml`/lockfile; `build/` and `.dart_tool/` are ignored. |
 | 24 | Assets owned, licensed, or credited | Yes | Shelf graphics and icon are project-created/AI-assisted, font license files are retained, and unverified visual research references are excluded from Git. |
@@ -54,4 +56,4 @@ This checklist uses the course template. Shelf 2.0 uses Supabase Auth for Google
 
 ## Anything I found and fixed
 
-This review caught stale documentation that still said Shelf had no hosted authentication; the dated security note now corrects it. It also caught room-scan research images whose redistribution rights had not been verified, so those stay out of the public repository. The remaining risks are an unaudited set of write paths and local inventory that is gated by a passcode in the UI but not encrypted by Shelf itself.
+This review caught stale documentation that still said Shelf had no hosted authentication; the dated security note now corrects it. It also caught room-scan research images whose redistribution rights had not been verified, so those stay out of the public repository. The current iOS identifier is generic, but an older identifier containing my name remains in Git history, so row 21 is **No**. The remaining risks are unaudited write paths and local inventory gated by a passcode in the UI but not encrypted by Shelf itself.

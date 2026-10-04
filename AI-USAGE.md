@@ -1,12 +1,5 @@
 # AI usage
 
-This project was built with AI assistance. This file is the record of it. It is
-graded as the finals badge, and it is worth 100 points.
-
-Start it in week 1 and keep it up as you go. The commit history of this file is
-part of the evidence: a file written all at once the night before the deadline
-looks exactly like what it is.
-
 ## 1. How I used AI
 
 ### 2026-09-20 - Configuring Flutter platforms and dependencies
@@ -105,10 +98,47 @@ looks exactly like what it is.
 - **What I kept, what I changed, and why:** I kept separate width, height and depth values: for a horizontal plane, the second horizontal extent is depth, not wall height. I also kept the UI wording factual, since a tracked surface is not the same as a recognized cabinet.
 - **Commit:** https://github.com/28BEANS/shelf/commit/19c2e9f
 
-## 2. Where the AI got it wrong
+### 2026-09-29–30 - Photo-backed room and item views (Week 3)
 
-Three cases. Be specific. If you write that the AI was never wrong, this section
-scores zero.
+- **Tool:** ChatGPT Codex
+- **What I asked for:** Save room and item photos on the device, review captures, place or move storage pins, and reopen or remove saved room views.
+- **What it gave back:** Drift photo and scan fields, repository/state changes, review screens, image display, and a saved-view screen.
+- **What I kept, what I changed, and why:** I kept the photo-backed view and a review step before saving item suggestions. I manually refined the saved-view instructions and pin action labels so the tap-to-place behavior is clear. I required pins to be moved before their photo view can be removed, so placements are not silently lost. I describe the result as labelled photos, not a textured 3D model.
+- **Commits:** [scan records](https://github.com/28BEANS/shelf/commit/8726dc4), [photo persistence](https://github.com/28BEANS/shelf/commit/1fddaf9), [capture review](https://github.com/28BEANS/shelf/commit/969068f), [view management](https://github.com/28BEANS/shelf/commit/2585aeb)
+
+### 2026-09-30 - Non-LiDAR camera observations (Week 3)
+
+- **Tool:** ChatGPT Codex
+- **What I asked for:** Rework the iPhone 12 mini camera path around room observations and manual storage placement after dropping LiDAR from the active build.
+- **What it gave back:** Changes to the iOS camera bridge, Flutter scan contract, and scan test.
+- **What I kept, what I changed, and why:** I kept explicit observation types and manual placement. This does not automatically recognize shelves or cabinets.
+- **Commit:** [camera observations](https://github.com/28BEANS/shelf/commit/cf8160c)
+
+### 2026-10-01–02 - Google registration and device passcode (Week 3)
+
+- **Tool:** ChatGPT Codex
+- **What I asked for:** Replace preview login with Google registration, then use a six-digit passcode for later openings and an in-app lock action.
+- **What it gave back:** A Supabase Auth service, secure local storage, entry screens, a separate Shelf 2.0 build path, and tests.
+- **What I kept, what I changed, and why:** I manually refined the entry-screen wording and field labels, configured OAuth outside the repo, and checked registration, lock, relaunch, and retained workspace on my iPhone 12 mini. **Log out** locks the UI but keeps the Google session for passcode-only return. Inventory remains local.
+- **Commits:** [auth service](https://github.com/28BEANS/shelf/commit/9d53a88), [separate app](https://github.com/28BEANS/shelf/commit/b5d3409), [entry flow](https://github.com/28BEANS/shelf/commit/edc2091), [tests](https://github.com/28BEANS/shelf/commit/250bd4c)
+
+### 2026-10-02 - Branded launch scene (Week 3)
+
+- **Tool:** ChatGPT Codex
+- **What I asked for:** Show a Shelf loading scene before the passcode screen opens.
+- **What it gave back:** An animated shelf scene and launch integration.
+- **What I kept, what I changed, and why:** I kept the short animation after checking on the iPhone that it appears at launch and does not block the workspace after unlock.
+- **Commits:** [animation](https://github.com/28BEANS/shelf/commit/da8fa69), [launch integration](https://github.com/28BEANS/shelf/commit/7d939f3)
+
+### 2026-10-03 - Interactive login artwork (Week 3)
+
+- **Tool:** ChatGPT Codex and image generation
+- **What I asked for:** Make a 3D-style Shelf illustration that responds visibly to dragging and fits the existing card.
+- **What it gave back:** A generated storage diorama, Flutter gesture and parallax code, and a widget test.
+- **What I kept, what I changed, and why:** The first interaction was too subtle on the phone, so I asked for stronger movement and removal of its dark frame. I kept the revised brand colors and Reduce Motion handling after checking the drag response on device.
+- **Commits:** [illustration and revision](https://github.com/28BEANS/shelf/commit/d8cee18), [motion test](https://github.com/28BEANS/shelf/commit/3896e32)
+
+## 2. Where the AI got it wrong
 
 ### Case 1 - Generating Mockup Screens
 
@@ -130,6 +160,48 @@ scores zero.
 - **What was wrong with it:** Shelf also lets people add items manually, so “scanned” made it sound like scanning was the only way to add inventory.
 - **What I did instead:** I changed the message to say there are no items in the section yet and that the user can add one when ready. That wording fits both manual entry and scanning.
 - **Commit:** [https://github.com/28BEANS/shelf/commit/722e72a](https://github.com/28BEANS/shelf/commit/722e72a)
+
+### Case 4 - Login artwork looked static on the phone (Week 3)
+
+- **What it gave me:** The first interactive diorama moved so little during a drag that it appeared stationary on the physical iPhone. That draft was not retained as a separate commit.
+- **What was wrong with it:** The movement was too subtle to communicate the requested interaction, and the dark inner frame clashed with the card.
+- **What I did instead:** I asked Codex to increase the visible drag response and remove the frame, then checked both changes on the iPhone. The test verifies movement and return to rest.
+- **Commits:** [revised illustration](https://github.com/28BEANS/shelf/commit/d8cee18), [motion test](https://github.com/28BEANS/shelf/commit/3896e32)
+
+### Case 5 - Fonts depended on runtime loading (Week 1)
+
+- **What it gave me:** The AI-assisted initial package setup included `google_fonts`, which I then used in Shelf's first visual theme.
+- **What was wrong with it:** That did not give the web build reliable offline typography. The app's look depended on whether those fonts were already available when it started.
+- **What I did instead:** I bundled Plus Jakarta Sans and Space Mono with their licence files, registered them in `pubspec.yaml`, and switched the theme to local font families. This kept the design consistent when the browser could not fetch a font.
+- **Commit:** [offline font fix](https://github.com/28BEANS/shelf/commit/f02705f)
+
+### Case 6 - Personal name in the iOS bundle identifier (Week 1)
+
+- **What it gave me:** The early AI-assisted iOS project setup carried a bundle identifier containing my name.
+- **What was wrong with it:** The identifier would be visible in a public repository and was unnecessary for the Shelf app.
+- **What I did instead:** I changed the current app and test bundle identifiers to generic Shelf identifiers. I cannot claim the old name disappeared from Git history; the current local security checklist marks that historical exposure **No**.
+- **Commit:** [bundle identifier correction](https://github.com/28BEANS/shelf/commit/54c2e76)
+
+### Case 7 - Floor depth was labelled as height (Week 2)
+
+- **What it gave me:** The first iOS scanner bridge passed the second horizontal AR plane extent through the `height` field and had no separate depth field for surfaces.
+- **What was wrong with it:** On a floor, that measurement describes depth, not wall height. A result could therefore display or save a misleading dimension.
+- **What I did instead:** I kept width, height, and depth distinct in Swift and the Flutter scan contract, and added a contract check. That lets the app preserve the measurement without pretending it is a wall height.
+- **Commit:** [surface geometry correction](https://github.com/28BEANS/shelf/commit/19c2e9f)
+
+### Case 8 - Web deployment ignored the new OAuth setup (Week 3)
+
+- **What it gave me:** The AI-assisted Pages workflow still tried to publish every push after Shelf 2.0 began requiring Supabase public configuration and a browser OAuth redirect.
+- **What was wrong with it:** A successful Flutter web build would not prove the deployed sign-in worked. Publishing without the required public values could replace the earlier usable demo with an account-setup error.
+- **What I did instead:** I gated the workflow on explicit OAuth readiness and public Supabase variables, passed only those public values to the web build, and kept the earlier browser demo in place. Public Shelf 2.0 browser sign-in still needs verification.
+- **Commit:** [OAuth deployment gate](https://github.com/28BEANS/shelf/commit/2034c6d)
+
+### Case 9 - Security documentation still described the old login (Week 3)
+
+- **What it gave me:** After the Google/passcode implementation, the earlier AI-assisted privacy notes still described Shelf as having no hosted authentication.
+- **What was wrong with it:** That was true of the older local-entry build but misleading as a current security description. It hid the Supabase session and the fact that **Log out** locks the UI without revoking that session.
+- **What I did instead:** I added a dated Shelf 2.0 security update and revised the README setup and auth description. I kept the old section as a labelled historical snapshot and documented the remaining local-data and session limits.
+- **Commits:** [security update](https://github.com/28BEANS/shelf/commit/45c3c7d), [README update](https://github.com/28BEANS/shelf/commit/925f1e3)
 
 ## 3. Who wrote what
 
@@ -169,6 +241,60 @@ scores zero.
 - **Commit:** [https://github.com/28BEANS/shelf/commit/19c2e9f](https://github.com/28BEANS/shelf/commit/19c2e9f)
 - **What I added and why:** I made sure a scanned surface could keep its depth as a separate value from its height when the app passes it between iOS and Flutter. This matters because a floor's second measurement is depth, while a wall's is height. Keeping both fields avoids showing the wrong kind of measurement later.
 
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/entry_screen.dart`
+- **Commit:** [entry flow](https://github.com/28BEANS/shelf/commit/edc2091)
+- **What I changed and why:** I manually refined the UI wording around Google registration and the six-digit passcode, including the screen descriptions, field labels, and action text. These are small screen-level edits, not a claim that I wrote the Supabase auth service. I wanted each step to tell the user clearly what happens next and to distinguish first-time setup from returning login.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/shell_screen.dart`
+- **Commits:** [room-view entry](https://github.com/28BEANS/shelf/commit/e8e753c) and [logout action](https://github.com/28BEANS/shelf/commit/edc2091)
+- **What I changed and why:** I manually adjusted the home screen presentation and action wording, including the room-photo preview, **Open room photo view**, **RESCAN THIS ROOM**, and the visible **LOG OUT** control. I wanted the saved room to be easy to reopen and rescan without making the home screen look like automatic shelf recognition was already available.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/room_photo_screen.dart`
+- **Commit:** [saved room views](https://github.com/28BEANS/shelf/commit/2585aeb)
+- **What I changed and why:** I manually refined the saved-view screen's instructions and controls, including **ADD OR EDIT PINS**, **REMOVE THIS VIEW**, and the message telling the user to move pins before deleting a photo. This made the tap-to-place behavior and the consequence of removing a view clearer. Codex helped build the underlying screen and save logic.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/setup_flow_screen.dart`
+- **Commit:** [photo review](https://github.com/28BEANS/shelf/commit/969068f)
+- **What I contributed and why:** I kept the captured room photo beside the storage marks in the review step, with a visible count of confirmed spots. I wanted to check where a mark appeared before accepting it, because a camera observation is still a suggestion until I review it.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/setup_flow_screen.dart`
+- **Commit:** [photo review](https://github.com/28BEANS/shelf/commit/969068f)
+- **What I contributed and why:** I kept the item photo, suggested names, and **Edit details** action together on the review screen. That makes it possible to compare a suggested label with the actual photo and correct it before the item is confirmed in a section.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/screens/inventory_screens.dart`
+- **Commit:** [saved item images](https://github.com/28BEANS/shelf/commit/02c4322)
+- **What I contributed and why:** I wanted the saved item photo to appear on search cards and item details, not only at capture time. A visible photo helps someone identify similar equipment after the original scanner session is over.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/widgets/shelf_room_photo.dart`
+- **Commit:** [room photo widget](https://github.com/28BEANS/shelf/commit/969068f)
+- **What I contributed and why:** I kept pins attached to positions on the image itself. The widget scales the photo to fit the screen and places each marker using its saved relative coordinates, so the same pin still points to the same storage spot when the photo is displayed at another size.
+
+### Contributed by @28BEANS (Week 3)
+
+- **File:** `lib/widgets/shelf_loading_animation.dart`
+- **Commit:** [animated loading scene](https://github.com/28BEANS/shelf/commit/da8fa69)
+- **What I contributed and why:** I chose a short Shelf-themed opening scene and checked that it appears before the account screen on the iPhone. The animation gives the app a recognizable launch while the account state loads; its motion also stops when the device requests reduced animation.
+
+### Contributed by @28BEANS (Week 3)
+
+- **Files:** `tools/generate_app_icons.py` and `ios/Runner/Assets.xcassets/AppIcon.appiconset/`
+- **Commits:** [icon generator](https://github.com/28BEANS/shelf/commit/5e82d8e) and [updated icons](https://github.com/28BEANS/shelf/commit/8ee3266)
+- **What I contributed and why:** I kept the app icon aligned with Shelf's existing logo and colors, then checked the generated iOS sizes as one set. Using the same source artwork for every required size keeps the installed icon consistent across the phone and system views.
+
 ### The AI-written part I understand best (Week 1)
 
 - **File:** `lib/data/app_database.dart`
@@ -181,70 +307,32 @@ scores zero.
 - **Commit:** [https://github.com/28BEANS/shelf/commit/15567a6](https://github.com/28BEANS/shelf/commit/15567a6)
 - **What it does and why we kept it:** The part I understand best here is `moveItem`. It first checks the item and destination, then updates the item's current section and writes a movement record inside one database transaction. The item's home section stays the same. I understand the reason for doing both writes together: if the app only changed the current section but failed to save the history, Shelf would show the new location without recording how it got there. We kept this so the current location and movement history stay in sync.
 
-## Week 3 additions, recorded October 4
+### The AI-written part I understand best (Week 3)
 
-These entries describe the Week 3 work and link to the retrospective batches
-committed for September 29–October 3. ChatGPT Codex assisted with the code;
-the project owner set the product requirements, reviewed the design, configured
-Google/Supabase, and tested the signed build on an iPhone 12 mini. I am not
-claiming that the owner typed the AI-generated implementation by hand.
+- **File:** `lib/services/shelf_auth.dart`
+- **Commit:** [https://github.com/28BEANS/shelf/commit/9d53a88](https://github.com/28BEANS/shelf/commit/9d53a88)
+- **What it does and why we kept it:** This service stores the Google session in secure device storage so I can return with a passcode. It saves a salted verifier instead of the passcode itself, checks that the current Google session belongs to the linked account, and slows repeated incorrect attempts. I understand why both checks matter: the passcode protects entry on this device, but it cannot create a Google identity by itself. Full session revocation would need another flow.
 
-### Photo-backed scan data
+### The AI-written part I understand (Week 3)
 
-- **Tool:** ChatGPT Codex.
-- **Request:** Keep actual room captures and item photos on the device for the non-LiDAR workflow.
-- **Returned:** Drift schema, model fields, and repository methods for photo paths and scan records.
-- **Kept/changed:** Kept local persistence and stable inventory identifiers; made saved room views distinct from a textured 3D model.
-- **Commits:** [scan records](https://github.com/28BEANS/shelf/commit/8726dc4), [repository and state](https://github.com/28BEANS/shelf/commit/1fddaf9).
+- **File:** `lib/data/inventory_repository.dart`
+- **Commit:** [photo persistence](https://github.com/28BEANS/shelf/commit/1fddaf9)
+- **What it does and why we kept it:** The `removeRoomPhoto` operation loads the saved scan and checks that the requested photo exists. It refuses removal if a storage container still has a pin on that photo. Otherwise it updates the photo list, preview path, and visual status together in a database transaction. I understand why the guard belongs in the repository as well as the screen: another caller should not be able to bypass it and leave a pin referring to a deleted view.
 
-### Non-LiDAR camera bridge
+### The AI-written part I understand (Week 3)
 
-- **Tool:** ChatGPT Codex.
-- **Request:** Remove the LiDAR workflow and make the iPhone 12 mini camera path produce usable room observations.
-- **Returned:** iOS scanner bridge, Flutter scan contract, and a contract test.
-- **Kept/changed:** Kept the ARKit/manual capture path and explicit observation types; did not label this as automatic cabinet detection.
-- **Commit:** [camera observations](https://github.com/28BEANS/shelf/commit/cf8160c).
+- **File:** `lib/screens/room_photo_screen.dart`
+- **Commit:** [saved room views](https://github.com/28BEANS/shelf/commit/2585aeb)
+- **What it does and why we kept it:** The pin-handling code turns a tap on the photo into a stored position. When I move an existing pin, it keeps that container's ID and changes its photo path and coordinates; when I add one, it first asks for a name and type. I kept this because the photo is a useful map only when the labels can be corrected after capture.
 
-### Photo review and saved views
+### The AI-written part I understand (Week 3)
 
-- **Tool:** ChatGPT Codex.
-- **Request:** Let the user review room and item photos, reopen views, move pins, and remove a view safely.
-- **Returned:** Capture/review widgets, stored-image display, and a saved-room-view screen.
-- **Kept/changed:** Kept a confirmation step before saving and blocked removal while storage pins still refer to the view, so inventory does not lose its placement.
-- **Commits:** [photo review](https://github.com/28BEANS/shelf/commit/969068f), [view management](https://github.com/28BEANS/shelf/commit/2585aeb).
+- **File:** `lib/widgets/shelf_illustration.dart`
+- **Commit:** [interactive illustration](https://github.com/28BEANS/shelf/commit/d8cee18)
+- **What it does and why we kept it:** This widget reads pointer movement and converts it to a small translation and tilt, then returns the illustration to rest when the pointer leaves or lifts. It checks the device's Reduce Motion setting and stops the movement when that setting is on. I kept the revised response because the first version barely moved on the phone, while the final version makes the interaction visible without being required to use the login screen.
 
-### Google account and passcode
+### The AI-written part I understand (Week 3)
 
-- **Tool:** ChatGPT Codex.
-- **Request:** Replace the preview login with Google registration, followed by a six-digit passcode; later unlocks use only the passcode.
-- **Returned:** Supabase auth service, redirect handling, entry screens, and tests.
-- **Kept/changed:** Kept Google only for initial registration/reconnection and a local passcode gate for normal openings. I checked the owner’s device result: registration, logout, relaunch, and saved workspace worked. I also documented that logout locks the UI rather than revoking the stored session.
-- **Commits:** [auth service](https://github.com/28BEANS/shelf/commit/9d53a88), [entry flow](https://github.com/28BEANS/shelf/commit/edc2091), [tests](https://github.com/28BEANS/shelf/commit/250bd4c).
-
-### Launch animation
-
-- **Tool:** ChatGPT Codex.
-- **Request:** Show a Shelf loading scene when the app opens before the passcode screen.
-- **Returned:** An animated shelf scene and launch integration.
-- **Kept/changed:** Kept the branded motion after confirming on the iPhone that it appears on cold launch and the workspace still opens after unlock.
-- **Commits:** [animation](https://github.com/28BEANS/shelf/commit/da8fa69), [launch integration](https://github.com/28BEANS/shelf/commit/7d939f3).
-
-### Interactive login illustration
-
-- **Tool:** ChatGPT Codex and image generation.
-- **Request:** Replace the flat login illustration with an immersive 3D-style Shelf graphic, then make dragging visibly move it and remove its dark inner frame.
-- **Returned:** A generated storage diorama, Flutter gesture/parallax treatment, and a motion test.
-- **Kept/changed:** Kept the lavender/black/lime brand palette, increased the interaction response after the first phone check, and respected Reduce Motion. The owner confirmed the final drag response and seamless card edge on device.
-- **Commits:** [illustration](https://github.com/28BEANS/shelf/commit/d8cee18), [interaction test](https://github.com/28BEANS/shelf/commit/3896e32).
-
-### Another AI mistake: motion too subtle
-
-- **Output:** The first interactive graphic responded to touch so subtly that it looked stationary on the physical iPhone.
-- **Problem:** A decorative graphic that appears static did not meet the requested immersive interaction.
-- **Fix:** I asked Codex to increase the visible drag response and remove the heavy black frame. The owner then confirmed both changes on device.
-- **Commit:** [revised illustration](https://github.com/28BEANS/shelf/commit/d8cee18).
-
-### Who wrote what in Week 3
-
-- **Project owner:** Chose the non-LiDAR focus, Google-only registration, passcode-only returning login, separate Shelf 2.0 installation, and the revised illustration interaction. Configured the external OAuth settings and tested the release app on the iPhone 12 mini. These decisions and checks guided the code; they are not a claim of hand-authoring the Flutter and Swift changes.
-- **ChatGPT Codex:** Drafted the Week 3 Flutter/Swift implementation, tests, and the retrospective documentation. For example, [`lib/services/shelf_auth.dart`](lib/services/shelf_auth.dart) in [9d53a88](https://github.com/28BEANS/shelf/commit/9d53a88) keeps the Google session available for passcode-only return while the passcode verifier is stored locally. The session check is needed so a six-digit number alone cannot create a Google account identity; the local gate is for this device, and the inventory still does not sync through Supabase.
+- **File:** `tools/run_shelf_visual_device.sh`
+- **Commit:** [separate device build](https://github.com/28BEANS/shelf/commit/b5d3409)
+- **What it does and why we kept it:** The script makes a temporary copy of Shelf, passes only the Supabase URL and publishable key into the Flutter build, and changes the copied iOS bundle ID to `app.shelf.inventory.visual`. I understand why it builds from a copy: installing Shelf 2.0 should not replace the original Shelf app or its local data. The original project files and private values stay out of the build copy.
