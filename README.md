@@ -10,10 +10,10 @@ returning to that device. Inventory is not synced to Supabase. The Account
 screen offers permanent deletion of the Shelf sign-in and saved device data.
 
 **Source:** <https://github.com/28BEANS/shelf>
-**Public browser demo:** <https://28beans.github.io/shelf/> — the earlier
-manual-flow build. The current Google sign-in version has not been verified on
-Pages, and the workflow is gated until public OAuth setup and a browser check
-are complete.
+**Public browser app:** <https://28beans.github.io/shelf/> — Shelf 2.0 with
+Google registration, a six-digit passcode, local inventory, and account
+deletion. GitHub Pages deployed [commit `3dd7b6c`](https://github.com/28BEANS/shelf/commit/3dd7b6ca9e4902a7fcd008ad6d7a87273c0d6c4b)
+on October 9 through the [web workflow](https://github.com/28BEANS/shelf/actions/runs/37929326030).
 
 ## Setup and installation
 
@@ -28,15 +28,21 @@ flutter pub get
 cp .env.example .env
 ```
 
-Set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` in the ignored `.env`.
-The device build script also accepts `URL` and `PUBLIC_KEY`. Use only the
-publishable client key; never put the Supabase secret key, database password, or
-connection URI in Flutter or Git. In Supabase, enable Google Auth with a Google
-Cloud Web application OAuth client. Add the callback URL shown by Supabase to
-the Google client's authorized redirect URIs, and add
+Fill `URL` and `PUBLIC_KEY` in the ignored `.env`, matching `.env.example`.
+The device build script maps them to `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY`; those mapped names also identify the public GitHub
+Actions variables. Use only the publishable client key in a build. The other
+`.env` fields are for local administration; never put the Supabase secret key,
+database password, or connection URI in Flutter or Git. In Supabase, enable
+Google Auth with a Google Cloud Web application OAuth client. Add the callback
+URL shown by Supabase to the Google client's authorized redirect URIs, and add
 `app.shelf.inventory.visual://login-callback/` to Supabase Auth's redirect
-allow list. These settings live outside this repository. Before using account
-deletion, apply the [account deletion migration](supabase/migrations/20261009000000_delete_my_account.sql)
+allow list. For the public browser build, also allow
+`https://28beans.github.io/shelf/` and set it as Supabase Auth's Site URL;
+the web sign-in flow returns to that default URL. The GitHub Actions workflow
+uses repository variables for the Supabase URL, publishable key, and web OAuth
+readiness flag. These settings live outside this repository. Before using
+account deletion, apply the [account deletion migration](supabase/migrations/20261009000000_delete_my_account.sql)
 to the same Supabase project. It creates the authenticated
 `delete_my_account` function; without it, the app cannot complete deletion.
 
@@ -57,10 +63,11 @@ and confirm a six-digit passcode, then unlock. Later launches return to the
 passcode screen.
 
 A simulator can show non-camera screens but cannot verify room tracking or
-camera results. The public browser link is the earlier manual demo. A fresh
-local Chrome run of this source needs public OAuth values passed as Dart
-defines and working web redirect configuration; that complete browser
-sign-in path has not yet been verified.
+camera results. The public browser app runs the current Shelf 2.0 source; its
+inventory is stored in that browser and is not synced with the iPhone. iOS
+camera and AR scanning still require a physical iPhone. A fresh local Chrome
+run needs public OAuth values passed as Dart defines and a matching local
+redirect URL in Supabase Auth.
 
 ## Features and usage
 
@@ -83,6 +90,28 @@ sign-in path has not yet been verified.
    session, and removes saved workspace, inventory, loan, scan, and photo data
    from this device. It returns to registration. This requires a live Supabase
    connection and the migration above. It does not delete the Google account.
+
+## Quick walkthrough
+
+1. **Add a container:** From **Spaces**, open **Scan** and choose **Set up
+   manually**. Create a workspace if prompted. Tap the new cabinet in the
+   storage review to give the container a name and type, then choose a layout
+   and its sections. On a supported iPhone, **Scan a workspace** is another
+   route: mark storage in the camera view and confirm the containers before
+   choosing their layouts.
+2. **Add an item:** Open the container and select the section where the item
+   belongs. On **Review items**, use **+ Add a missed item** for manual entry;
+   enter at least its name, review the details, and save the reviewed item.
+   On iPhone, **Capture one item** can suggest a label from a photo, which you
+   should correct before saving.
+3. **Find it:** Open the **Search** tab and enter an item name, model,
+   identifier, or location in **Search inventory**. Use **All**, **Stored**,
+   or **Checked out** to narrow the results, then tap an item for its details
+   and home section.
+4. **Check it out:** Open a stored item's details and tap **Check out item**.
+   Enter the borrower's name, choose a return date, optionally set its
+   condition and notes, then tap **Confirm checkout**. The item changes to
+   **Checked out** while its home location remains saved for its return.
 
 ## Screenshots
 
@@ -121,8 +150,8 @@ cases, and a full write-path validation audit remain open.
 
 The gallery above includes current Shelf 2.0 screens and one earlier live AR
 camera image. The Account screenshot shows the entry point, not proof that the
-server deletion completed. The final demo video, slides, and square image
-remain open. The public Pages build still shows the earlier browser demo.
+server deletion completed. [Presentation deliverables](PRESENTATION.md) link
+to the video, slides, and square image. The public Pages build now runs Shelf 2.0.
 
 ## Project structure
 
@@ -144,11 +173,13 @@ supabase/migrations/           # authenticated account deletion function
 
 The source was checked on October 9 with `flutter analyze` and 18 Flutter
 tests, including confirmation and local-data clearing for account deletion.
-These automated tests use a fake auth gateway; they do not verify the live
-Supabase deletion function. The owner previously verified Google registration,
-passcode unlock after relaunch, retained workspace, and the illustration drag
-response on an iPhone 12 mini. The October 4 release web build check was not
-an OAuth browser test.
+The October 9 GitHub workflow also passed analysis, tests, and the release web
+build; the public Shelf 2.0 sign-in screen loaded after deployment. These
+automated tests use a fake auth gateway, so they do not verify the live
+Supabase deletion function. The owner tested browser sign-in and account
+deletion in the current build, and previously verified Google registration,
+passcode unlock after relaunch, retained workspace, and illustration dragging
+on an iPhone 12 mini.
 
 - [Week 3 implementation report](docs/04-weekly-reports.md)
 - [Security checklist](SECURITY-CHECKLIST.md) and [privacy notes](docs/06-security-and-privacy.md)

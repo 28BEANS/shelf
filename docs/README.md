@@ -30,8 +30,9 @@ Two rules:
   less to you.
 
 The visual references used by the documentation are stored in `assets/mockup/`
-and `assets/design-system/`. The demo-video document is intentionally left as a
-recording checklist until the final demonstration is available.
+and `assets/design-system/`. The October 4 demo-video document records the
+planned walkthrough; [presentation deliverables](../PRESENTATION.md) now link
+to the video, slides, and square image.
 
 ## October 3 documentation status
 
@@ -43,5 +44,13 @@ contains a dated security checklist based on the course template and an AI
 usage record with links to the feature commits.
 
 The Week 2 screenshots are real iPhone test evidence for that earlier
-increment. Current Shelf 2.0 login and room-photo screenshots still need
-to be captured and reviewed before being added publicly.
+increment. At the October 3 check, current Shelf 2.0 login and room-photo
+screenshots still needed to be captured and reviewed before public use.
+
+## October 9 documentation update
+
+The [root README](../README.md) now includes current Shelf 2.0 login, launch,
+room-photo, inventory, and account screenshots. GitHub Pages serves the current
+Shelf 2.0 build; the [deployment run](https://github.com/28BEANS/shelf/actions/runs/37929326030)
+passed. The older screenshot and deployment statements above describe their
+dated October 3 snapshot.

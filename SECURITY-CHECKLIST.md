@@ -1,4 +1,4 @@
-# Security checklist — 2026-10-04
+# Security checklist — updated 2026-10-09
 
 **Audit target:** [28BEANS/shelf](https://github.com/28BEANS/shelf), including its tracked files and Git history.
 
@@ -19,10 +19,10 @@ This checklist uses the course template. Shelf 2.0 uses Supabase Auth for Google
 | # | Check | Answer | Evidence |
 | --- | --- | --- | --- |
 | 6 | No secret literal in workflow YAML | Yes | `.github/workflows/deploy-web.yml` has variable names and public config references, no credential values. |
-| 7 | Private workflow credentials use Actions secrets | N/A | Current Pages workflow consumes no private credential; its future OAuth gate uses public repository variables only. |
-| 8 | No secret echoed and recent run log checked | N/A | There is no private workflow secret to echo; the gated Shelf 2.0 deployment has not run with OAuth variables. I cannot claim a new run-log check. |
+| 7 | Private workflow credentials use Actions secrets | N/A | The Pages workflow uses only the Supabase URL and publishable client key as repository variables; it receives no private credential. |
+| 8 | No secret echoed and recent run log checked | Yes | The [October 9 deployment run](https://github.com/28BEANS/shelf/actions/runs/37929326030) passed; an exact-value check found none of the private values from the local ignored `.env` in its log. |
 | 9 | Signed APK keystore decoded at build time | N/A | This repository has no signed Android APK workflow. |
-| 10 | Build artifacts contain no key file | Yes | Pages uploads only the Flutter `build/web` output; the build is gated until public OAuth configuration exists and no key file is included in its artifact path. |
+| 10 | Build artifacts contain no key file | Yes | Pages uploads only `build/web`. The live `.env` path returns 404, and an exact-value check found none of the private local `.env` values in the published JavaScript. The public Supabase URL and publishable key are expected in the client bundle. |
 | 11 | Third-party actions pinned to commit SHA | Yes | The Pages workflow references action commit hashes rather than movable tags. |
 | 12 | Secret scanning and push protection enabled | Yes | GitHub repository security settings/API reported both enabled on October 3. |
 
@@ -57,3 +57,8 @@ This checklist uses the course template. Shelf 2.0 uses Supabase Auth for Google
 ## Anything I found and fixed
 
 This review caught stale documentation that still said Shelf had no hosted authentication; the dated security note now corrects it. It also caught room-scan research images whose redistribution rights had not been verified, so those stay out of the public repository. The current iOS identifier is generic, but an older identifier containing my name remains in Git history, so row 21 is **No**. The remaining risks are unaudited write paths and local inventory gated by a passcode in the UI but not encrypted by Shelf itself.
+
+On October 9, GitHub Pages deployed Shelf 2.0 from commit `3dd7b6c`. The public
+sign-in screen loaded in a browser. The owner reports testing browser sign-in
+and account deletion in the current build; the deployment check did not repeat
+those account actions.

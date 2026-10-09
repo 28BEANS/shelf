@@ -82,12 +82,25 @@ The device build sends only the Supabase URL and **publishable** key to Flutter.
 The secret key, database URI, and password in the local ignored `.env` are not
 read into the app. A shipped binary can expose the publishable key, so it must
 never be mistaken for authorization. The existing Google OAuth provider and
-redirect allow list are configured outside the repository. The web deployment
-workflow is gated until public OAuth variables are supplied. It has not been
-used to verify the new sign-in flow in a public web build.
+redirect allow list are configured outside the repository. As of October 4,
+the web deployment workflow was gated until public OAuth variables were
+supplied. It had not been used to verify the new sign-in flow in a public web
+build.
 
 Local inventory files are protected by the operating system's app sandbox and
 Shelf's passcode UI, but Shelf does not encrypt its SQLite database or photo
 files itself. A compromised/unlocked device may expose them. The current
 [25-point security checklist](../SECURITY-CHECKLIST.md) records this and other
 remaining checks without treating them as complete.
+
+## October 9, 2026 deployment update
+
+GitHub Pages now serves Shelf 2.0 from commit `3dd7b6c`. Supabase Auth's Site
+URL and redirect allow list include `https://28beans.github.io/shelf/`, and
+the deployment workflow receives the Supabase URL and publishable client key
+through GitHub Actions repository variables. Those client values are visible
+in a public browser build by design. An exact-value check found none of the
+private values from the ignored local `.env` in the published JavaScript or
+the successful workflow log; requesting `.env` from the public site returned
+404. The public sign-in screen loaded after deployment. The owner reports
+testing browser sign-in and account deletion in the current build.

@@ -196,8 +196,8 @@ on its displayed date. Exact hours and a day-by-day time log were not recorded.
   its dark frame; the owner confirmed both on device.
 - `flutter analyze` passed, 17 Flutter tests passed, and the release web build
   succeeded after the source changes. These are build checks, not proof that
-  Google OAuth works in the public web demo. The Pages deployment is gated
-  until its public OAuth configuration is provided.
+  Google OAuth works in the public web demo. At that point, the Pages
+  deployment was gated until its public OAuth configuration was provided.
 - On October 4, the proposal, mockup notes, design-system notes, visual-scan
   plan, README, security checklist, and AI usage record were updated as dated
   additions. Older snapshots are retained for context.
@@ -206,3 +206,17 @@ on its displayed date. Exact hours and a day-by-day time log were not recorded.
 cases; audit all write-path validation; capture current Shelf 2.0 screenshots;
 record the 3–5 minute demo and AI explanation; prepare the slides and square
 image; verify public web OAuth before replacing the earlier browser demo.
+
+### October 9 update
+
+Account settings now offer deletion of the Supabase Shelf user and the data
+saved on that device, with confirmation. `flutter analyze` and 18 Flutter
+tests passed; the deletion tests use a fake auth gateway. The owner reports
+testing browser sign-in and deletion in the current build. The
+[GitHub Pages workflow](https://github.com/28BEANS/shelf/actions/runs/37929326030)
+passed analysis, tests, and a release web build, then deployed commit
+`3dd7b6c`. The public Shelf 2.0 sign-in screen loaded after deployment.
+Current screenshots were added to the root README, and
+[presentation deliverables](../PRESENTATION.md) link to the video, slides,
+and square image. Barcode and scanner failure cases and a full write-path
+validation audit remain open.

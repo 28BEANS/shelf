@@ -39,8 +39,9 @@ it.
 
 ## October 4 recording outline and status
 
-The final 3–5 minute recording has **not yet been captured or published**. Use
-the signed Shelf 2.0 iPhone app, blur account details, and show these steps:
+As of October 4, the final 3–5 minute recording had **not yet been captured or
+published**. Use the signed Shelf 2.0 iPhone app, blur account details, and
+show these steps:
 
 1. Introduce the equipment-finding problem and the local-first approach.
 2. Show Google registration only if a safe test account is ready; otherwise
@@ -56,6 +57,10 @@ the signed Shelf 2.0 iPhone app, blur account details, and show these steps:
 The course rubric also calls for a slide deck, a square title image, and a
 public Google Drive link for the video. Those deliverables are not represented
 as completed here.
+
+**October 9 update:** [Presentation deliverables](../PRESENTATION.md) now link
+to the video, slides, and square image. The recording outline above remains
+the October 4 plan.
 
 ## Replaying Google registration in Shelf 2.0
 
