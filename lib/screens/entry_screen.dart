@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/shelf_auth.dart';
+import '../state/providers.dart';
 import '../theme.dart';
 import '../widgets/hard_shadow_card.dart';
 import '../widgets/primary_action_button.dart';
 import '../widgets/shelf_brand.dart';
 import '../widgets/shelf_illustration.dart';
 import '../widgets/shelf_loading_animation.dart';
+import '../widgets/shelf_stored_image.dart';
 import 'shell_screen.dart';
 
 class EntryScreen extends StatefulWidget {
@@ -142,16 +145,22 @@ class _EntryScreenState extends State<EntryScreen> {
     }
   });
 
-  void _logout() => _run(() async {
-    await _auth!.logout();
+  Future<void> _deleteAccount() async {
+    final container = ProviderScope.containerOf(context);
+    await _auth!.deleteAccount();
+    await container.read(databaseProvider).clearAccountData();
+    await clearShelfMedia();
+    container.invalidate(setupProvider);
     if (mounted) {
       setState(() {
         _unlocked = false;
+        _step = ShelfAuthStep.register;
         _pin.clear();
-        _step = ShelfAuthStep.login;
+        _confirm.clear();
+        _error = null;
       });
     }
-  });
+  }
 
   Future<void> _restartSignInDemo() async {
     await _auth!.restartSignInDemo();
@@ -180,7 +189,7 @@ class _EntryScreenState extends State<EntryScreen> {
     }
     if (_unlocked) {
       return ShelfShell(
-        onLogout: _logout,
+        onDeleteAccount: _deleteAccount,
         onRestartSignInDemo: widget.enableDemoReset ? _restartSignInDemo : null,
       );
     }

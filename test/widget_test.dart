@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
@@ -14,8 +17,20 @@ import 'package:final_project/widgets/shelf_loading_animation.dart';
 
 void main() {
   late AppDatabase database;
-  setUp(() => database = AppDatabase(NativeDatabase.memory()));
-  tearDown(() => database.close());
+  late Directory documents;
+  const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
+  setUp(() {
+    database = AppDatabase(NativeDatabase.memory());
+    documents = Directory.systemTemp.createTempSync('shelf-widget-');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, (call) async => documents.path);
+  });
+  tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, null);
+    await database.close();
+    await documents.delete(recursive: true);
+  });
 
   testWidgets('startup shows the Shelf animation before login', (tester) async {
     _phoneViewport(tester);
@@ -58,16 +73,36 @@ void main() {
     expect(find.text('Enter exactly six digits.'), findsOneWidget);
   });
 
-  testWidgets('logout returns to passcode login', (tester) async {
+  testWidgets('account deletion requires confirmation and clears local data', (
+    tester,
+  ) async {
     _phoneViewport(tester);
-    await _pumpApp(tester, database);
+    final auth = _TestAuth();
+    await InventoryRepository(database).saveWorkspace('To delete', '');
+    await _pumpApp(tester, database, auth: auth);
     await _signIn(tester);
-    await tester.tap(find.byKey(const Key('logout')));
+    expect(find.byKey(const Key('delete-account')), findsNothing);
+    await tester.tap(find.byKey(const Key('account-settings')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('delete-account')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete your Shelf account?'), findsOneWidget);
+    await tester.tap(find.text('CANCEL'));
+    await tester.pumpAndSettle();
+    expect(auth.deletions, 0);
+    await tester.tap(find.byKey(const Key('delete-account')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-delete-account')));
+    await tester.pump();
+    await tester.runAsync(
+      () async => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.byKey(const Key('passcode')), findsOneWidget);
+    expect(auth.deletions, 1);
+    expect(find.text('Create your account'), findsOneWidget);
     expect(find.text('Your Spaces'), findsNothing);
+    expect(await database.select(database.workspaces).get(), isEmpty);
   });
 
   testWidgets('demo reset replays Google and keeps local workspace', (
@@ -96,6 +131,8 @@ void main() {
     await _signIn(tester);
     expect(find.text('Presentation Room'), findsOneWidget);
 
+    await tester.tap(find.byKey(const Key('account-settings')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('restart-sign-in-demo')));
     await tester.pumpAndSettle();
     expect(find.text('Replay Google sign-in?'), findsOneWidget);
@@ -103,6 +140,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(auth.demoResets, 0);
 
+    await tester.tap(find.byKey(const Key('account-settings')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('restart-sign-in-demo')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('confirm-demo-reset')));
@@ -262,6 +301,7 @@ Future<void> _pumpApp(
   WidgetTester tester,
   AppDatabase database, {
   ScanService? scanService,
+  ShelfAuthGateway? auth,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -270,7 +310,7 @@ Future<void> _pumpApp(
         if (scanService != null)
           scanServiceProvider.overrideWithValue(scanService),
       ],
-      child: ShelfApp(authGateway: _TestAuth()),
+      child: ShelfApp(authGateway: auth ?? _TestAuth()),
     ),
   );
   await tester.pump(const Duration(milliseconds: 2300));
@@ -350,6 +390,7 @@ class _TestAuth implements ShelfAuthGateway {
   _TestAuth({this.initial = ShelfAuthStep.login});
   final ShelfAuthStep initial;
   int demoResets = 0;
+  int deletions = 0;
   @override
   Future<ShelfAuthStep> initialStep() async => initial;
   @override
@@ -360,7 +401,10 @@ class _TestAuth implements ShelfAuthGateway {
   @override
   Future<bool> unlock(String passcode) async => passcode == '123456';
   @override
-  Future<void> logout() async {}
+  Future<void> deleteAccount() async {
+    deletions++;
+  }
+
   @override
   Future<void> restartSignInDemo() async {
     demoResets++;

@@ -100,6 +100,11 @@ final shelfTheme = ThemeData(
   inputDecorationTheme: const InputDecorationTheme(
     filled: true,
     fillColor: Colors.white,
+    labelStyle: TextStyle(color: Color(0xFF45413F)),
+    floatingLabelStyle: TextStyle(
+      color: Color(0xFF45413F),
+      fontWeight: FontWeight.w700,
+    ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(8)),
       borderSide: BorderSide(color: Color(0xFF1A1A1A), width: 2),

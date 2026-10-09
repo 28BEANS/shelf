@@ -19,11 +19,11 @@ import 'setup_flow_screen.dart';
 class ShelfShell extends ConsumerStatefulWidget {
   const ShelfShell({
     super.key,
-    required this.onLogout,
+    required this.onDeleteAccount,
     this.onRestartSignInDemo,
   });
 
-  final VoidCallback onLogout;
+  final Future<void> Function() onDeleteAccount;
   final Future<void> Function()? onRestartSignInDemo;
 
   @override
@@ -135,7 +135,7 @@ class _ShelfShellState extends ConsumerState<ShelfShell> {
       _HomePage(
         onScan: () => setState(() => _index = 1),
         onRescan: () => _openSetup(rescanExisting: true),
-        onLogout: widget.onLogout,
+        onDeleteAccount: widget.onDeleteAccount,
         onRestartSignInDemo: widget.onRestartSignInDemo,
       ),
       _ScanPage(
@@ -197,12 +197,12 @@ class _HomePage extends ConsumerWidget {
   const _HomePage({
     required this.onScan,
     required this.onRescan,
-    required this.onLogout,
+    required this.onDeleteAccount,
     this.onRestartSignInDemo,
   });
   final VoidCallback onScan;
   final VoidCallback onRescan;
-  final VoidCallback onLogout;
+  final Future<void> Function() onDeleteAccount;
   final Future<void> Function()? onRestartSignInDemo;
 
   Future<void> _confirmRestartSignInDemo(BuildContext context) async {
@@ -263,25 +263,23 @@ class _HomePage extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Align(
           alignment: Alignment.centerRight,
-          child: OutlinedButton.icon(
-            key: const Key('logout'),
-            onPressed: onLogout,
-            icon: const Icon(Icons.lock_outline),
-            label: const Text('LOG OUT'),
+          child: IconButton(
+            key: const Key('account-settings'),
+            tooltip: 'Account settings',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _AccountPage(
+                  onDeleteAccount: onDeleteAccount,
+                  onRestartSignInDemo: onRestartSignInDemo,
+                  onConfirmRestartSignInDemo: () =>
+                      _confirmRestartSignInDemo(context),
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.manage_accounts_outlined),
           ),
         ),
-        if (onRestartSignInDemo != null) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              key: const Key('restart-sign-in-demo'),
-              onPressed: () => _confirmRestartSignInDemo(context),
-              icon: const Icon(Icons.replay),
-              label: const Text('REPLAY SIGN-IN DEMO'),
-            ),
-          ),
-        ],
         const SizedBox(height: AppSpacing.md),
         if (state.workspace != null && state.containers.isNotEmpty)
           HardShadowCard(
@@ -422,6 +420,128 @@ class _HomePage extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _AccountPage extends StatefulWidget {
+  const _AccountPage({
+    required this.onDeleteAccount,
+    required this.onRestartSignInDemo,
+    required this.onConfirmRestartSignInDemo,
+  });
+
+  final Future<void> Function() onDeleteAccount;
+  final Future<void> Function()? onRestartSignInDemo;
+  final Future<void> Function() onConfirmRestartSignInDemo;
+
+  @override
+  State<_AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<_AccountPage> {
+  bool _deleting = false;
+
+  Future<void> _confirmDeletion() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your Shelf account?'),
+        content: const Text(
+          'This permanently deletes your Shelf sign-in linked to Google, '
+          'your saved spaces, inventory, room photos, and passcode on this '
+          'device. This cannot be undone. Your Google account itself will '
+          'not be deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            key: const Key('confirm-delete-account'),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('DELETE ACCOUNT'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await widget.onDeleteAccount();
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not delete your account. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Account')),
+    body: ShelfMobileRail(
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
+            const ShelfPageHeader(
+              eyebrow: 'Settings',
+              title: 'Your account',
+              subtitle: 'Manage your Shelf account and saved data.',
+            ),
+            const SizedBox(height: AppSpacing.section),
+            HardShadowCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Delete account',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  const Text(
+                    'Permanently remove your Shelf sign-in and all saved '
+                    'data from this device.',
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  OutlinedButton.icon(
+                    key: const Key('delete-account'),
+                    onPressed: _deleting ? null : _confirmDeletion,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('DELETE ACCOUNT'),
+                  ),
+                  if (_deleting) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    const LinearProgressIndicator(),
+                  ],
+                ],
+              ),
+            ),
+            if (widget.onRestartSignInDemo != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              TextButton.icon(
+                key: const Key('restart-sign-in-demo'),
+                onPressed: _deleting
+                    ? null
+                    : () async {
+                        await widget.onConfirmRestartSignInDemo();
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                icon: const Icon(Icons.replay),
+                label: const Text('REPLAY SIGN-IN DEMO'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _ScanPage extends StatelessWidget {

@@ -19,6 +19,13 @@ Future<void> discardShelfMedia(String? relativePath) async {
   if (file != null) await file.delete();
 }
 
+Future<void> clearShelfMedia() async {
+  if (kIsWeb) return;
+  final documents = await getApplicationDocumentsDirectory();
+  final media = Directory('${documents.path}/ShelfMedia');
+  if (await media.exists()) await media.delete(recursive: true);
+}
+
 class ShelfStoredImage extends StatelessWidget {
   const ShelfStoredImage({
     super.key,

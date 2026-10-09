@@ -78,17 +78,15 @@ contents = plist.read_text()
 old_name = "<key>CFBundleDisplayName</key>\n\t<string>Shelf</string>"
 if contents.count(old_name) != 1:
     raise SystemExit("Unexpected display name; refusing to install")
-plist.write_text(contents.replace(old_name, old_name.replace("Shelf", "Shelf 2.0")))
 PY
 
-echo "Building Shelf 2.0 from $build_root"
+echo "Building Shelf from $build_root"
 cd "$build_root"
 flutter pub get
-flutter build ios --release --build-name=2.0.0 --build-number=6 \
-  --dart-define-from-file="$build_root/public_env.json" \
-  --dart-define=SHELF_ENABLE_DEMO_RESET=true
+flutter build ios --release --build-name=2.0.0 --build-number=8 \
+  --dart-define-from-file="$build_root/public_env.json"
 if [[ "$build_only" == true ]]; then
-  echo "Signed Shelf 2.0 build: $build_root/build/ios/iphoneos/Runner.app"
+  echo "Signed Shelf build: $build_root/build/ios/iphoneos/Runner.app"
   exit 0
 fi
 xcrun devicectl device install app --device "$device_id" \

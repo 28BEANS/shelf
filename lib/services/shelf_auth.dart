@@ -14,7 +14,7 @@ abstract class ShelfAuthGateway {
   Future<ShelfAuthStep> continueWithGoogle();
   Future<void> createPasscode(String passcode);
   Future<bool> unlock(String passcode);
-  Future<void> logout();
+  Future<void> deleteAccount();
   Future<void> restartSignInDemo();
 }
 
@@ -179,9 +179,26 @@ class SupabaseShelfAuth implements ShelfAuthGateway {
     return false;
   }
 
-  /// Lock this device and keep the Google-backed session for PIN-only return.
   @override
-  Future<void> logout() async {}
+  Future<void> deleteAccount() async {
+    final user = _client.auth.currentUser;
+    if (user == null || _client.auth.currentSession == null) {
+      throw StateError('Sign in again before deleting your account.');
+    }
+    // The database function uses auth.uid() and cannot delete another user.
+    await _client.rpc('delete_my_account');
+    try {
+      await _client.auth.signOut(scope: SignOutScope.local);
+    } catch (_) {
+      // The account is already gone. Continue clearing this device even if
+      // the follow-up sign-out request cannot reach Supabase.
+    }
+    await const ShelfSessionStorage().removePersistedSession();
+    await _storage.delete(key: _userKey);
+    await _storage.delete(key: _pinKey);
+    await _storage.delete(key: _attemptKey);
+    await _storage.delete(key: _cooldownKey);
+  }
 
   /// Replay sign-in without deleting the Supabase user or local inventory.
   /// Keep the bound user ID so a different Google account cannot open the
