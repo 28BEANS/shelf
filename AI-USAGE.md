@@ -144,7 +144,7 @@
 - **What I asked for:** I used AI to help connect an account deletion request to Supabase Auth and the data saved on this device, with a confirmation step before anything is removed.
 - **What it gave back:** It helped with the authenticated `delete_my_account` database function, the app-side deletion and local cleanup path, and a widget test for confirmation and local data clearing.
 - **What I kept, what I changed, and why:** I kept the requirement that the signed-in Shelf user can delete only their own account and that the app clears its local records, photos, passcode, and session. I fixed UI flaws and added the Account screen so deletion is a deliberate action with an explanation and confirmation. The automated tests passed, but they do not verify live Supabase deletion.
-- **Commit:** `4e167a8f2cae40202966645497910e10c8dc077b` (`feat: add account deletion and account settings`)
+- **Commit:** [account deletion and settings](https://github.com/28BEANS/shelf/commit/4e167a8f2cae40202966645497910e10c8dc077b) (`feat: add account deletion and account settings`)
 
 ## 2. Where the AI got it wrong
 
@@ -264,7 +264,7 @@
 ### Contributed by @28BEANS (Account deletion update)
 
 - **Files:** `lib/screens/shell_screen.dart` and `lib/theme.dart`
-- **Commit:** `4e167a8f2cae40202966645497910e10c8dc077b` (`feat: add account deletion and account settings`)
+- **Commit:** [account deletion and settings](https://github.com/28BEANS/shelf/commit/4e167a8f2cae40202966645497910e10c8dc077b) (`feat: add account deletion and account settings`)
 - **What I changed and why:** I fixed UI flaws in the account flow and added the Account screen, reached from the home screen. I put **Delete account** behind a confirmation dialog and clarified what is removed from Shelf and what happens to the Google account. I also corrected field-label styling so the form remains readable. Codex helped with the deletion service, database cleanup, and test; this entry describes my UI contribution.
 
 ### Contributed by @28BEANS (Week 3)
